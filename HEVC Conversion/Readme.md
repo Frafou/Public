@@ -10,18 +10,14 @@ The PowerShell script scans a directory and its subdirectories for non-HEVC vide
 1. **ffmpeg** and **ffprobe** which can be downloaded at **https://ffbinaries.com/**
 2. **PSLogging** module which teh script will install
 
-
-
-
 ## Features
+- Convert Non-HEVC file to HEVC format
 - LogOnly
-- Lognly
-- Feature 3
 
 ## Installation
 Instructions on how to install and set up your project.
 
-# Clone the repository
+# Copy File
 Copy PS1 file to a local <Folder>
 
 # Navigate to the directory
@@ -46,7 +42,7 @@ Guidelines for contributing to your project.
 5. Open a pull request
 
 # License
-Specify the license under which your project is distributed.
+MIT license.
 
 # Contact
 How to reach you for questions or feedback.
