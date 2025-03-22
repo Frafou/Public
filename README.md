@@ -6,5 +6,6 @@ This PowerShell script re-encodes non-HEVC video files in a specified directory 
 # Description:
 The PowerShell script scans a directory and its subdirectories for non-HEVC video files, renames them and converts any MP4 files to MKV, then re-encodes the videos using the x265 HEVC codec and a medium preset with a 23 quality.
 
-
-Required **ffmpeg** and **ffprobe** which can be downloaded at **https://ffbinaries.com/**
+#Requirements: 
+1. **ffmpeg** and **ffprobe** which can be downloaded at **https://ffbinaries.com/**
+2. **PSLogging** module which teh script will install
