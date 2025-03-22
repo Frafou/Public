@@ -1,5 +1,20 @@
 # General available scripts 
-# HEVC Conversion
 
-## Description
-PowerShell script re-encodes non-HEVC video files in a specified directory and its subdirectories using x265 HEVC video codec with a medium preset and 23 quality.
+# Contributing
+Guidelines for contributing to your project.
+
+1. Fork the repository
+2. Create a new branch (git checkout -b feature-branch)
+3. Make your changes
+4. Commit your changes (git commit -m 'Add some feature')
+4. Push to the branch (git push origin feature-branch)
+5. Open a pull request
+
+# License
+MIT license.
+
+# Contact
+How to reach you for questions or feedback.
+
+Email: GitHub@ffournier.ca
+GitHub: Frafou
