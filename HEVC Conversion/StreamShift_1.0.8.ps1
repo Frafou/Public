@@ -1,5 +1,4 @@
-﻿
-<#
+﻿<#
 .SYNOPSIS
     This PowerShell script re-encodes non-HEVC video files in a specified directory and its subdirectories using x265 HEVC video codec with a medium preset and 23 quality.
 
@@ -39,8 +38,24 @@
     V1.0.5 - Improved file organization by changing names of output and tool directories.
     V1.0.6 - Resolved problem with invoking executables using variables.
     V1.0.7 - Changed FFprobe to exclude 720p format and renamed output file.
-    V1.0.8 - Added PSLoggin for more effective login, added Switch for Logging only, and added some file/Stream info to the output.
+    V1.0.8 - Added PSLogging for more effective login, added Switch for Logging only, and added some file/Stream info to the output.
 
+		Preset
+			A preset is a collection of options that will provide a certain encoding speed to compression ratio. A slower preset will provide better compression (compression is quality per file size). This means that, for example, if you target a certain file size or constant bit rate, you will achieve better quality with a slower preset. Similarly, for constant quality encoding, you will simply save bitrate by choosing a slower preset.
+
+		Use the slowest preset that you have patience for. The available presets in descending order of speed are:
+			ultrafast
+			superfast
+			veryfast
+			faster
+			fast
+			medium – default preset
+			slow
+			slower
+			veryslow
+			placebo – ignore this as it is not useful (see FAQ)
+
+		You can see a list of current presets with -preset help (see example below). If you have the x264 binary installed, you can also see the exact settings these presets apply by running x264 --fullhelp.
 
 .link
 https://emby.media/community/index.php?/topic/118164-x265-or-hevc-which-is-besteasiest/
@@ -49,22 +64,7 @@ https://ffbinaries.com/
 
 https://trac.ffmpeg.org/wiki/Encode/H.264
 
-Preset
-A preset is a collection of options that will provide a certain encoding speed to compression ratio. A slower preset will provide better compression (compression is quality per filesize). This means that, for example, if you target a certain file size or constant bit rate, you will achieve better quality with a slower preset. Similarly, for constant quality encoding, you will simply save bitrate by choosing a slower preset.
 
-Use the slowest preset that you have patience for. The available presets in descending order of speed are:
-	ultrafast
-	superfast
-	veryfast
-	faster
-	fast
-	medium – default preset
-	slow
-	slower
-	veryslow
-	placebo – ignore this as it is not useful (see FAQ)
-
-You can see a list of current presets with -preset help (see example below). If you have the x264 binary installed, you can also see the exact settings these presets apply by running x264 --fullhelp.
 #>
 #Requires -Version 5
 
@@ -91,7 +91,6 @@ Write-Verbose "LogFile:	$LogFile"
 Write-Verbose "DataFile:	$CSVFile"
 #EndRegion Variables
 
-
 if (-not (Test-Path $logPath -PathType Container)) {
 	try {
 		New-Item -Path $logPath -ItemType Directory | Out-Null
@@ -112,7 +111,6 @@ if (-not (Test-Path $CSVPath -PathType Container)) {
 		Break
 	}
 }
-
 
 #Region Module PSLogging
 #--------------------
@@ -165,8 +163,6 @@ Write-LogInfo -LogPath $LogFile -Message "`n[INFO] Log: $logName" -ToScreen
 # This code sets directories for video encoding and tool paths.
 $inputPath = 'D:\Videos\Series'
 $outputPath = 'D:\Videos\Series'
-$inputPath = 'D:\Victoria'
-$outputPath = 'D:\Victoria'
 $ffmpegPath = "$ScriptPath\ffmpeg.exe"
 $ffprobePath = "$ScriptPath\ffprobe.exe"
 
@@ -175,7 +171,7 @@ $videoList = Get-ChildItem -Path $inputPath -Recurse -Include *.mp4, *.mkv, *.av
 $videoList | Export-Csv $CSVFile -NoTypeInformation
 # This code iterates over a list of video files, retrieves their details using ffprobe, and converts the output to JSON format.
 
-if ($Logonly) {
+if ($LogOnly) {
 	Write-LogInfo -LogPath $LogFile -Message "`nLog Only selected, conversion of file will not be executed" -ToScreen
 }
 
@@ -205,26 +201,26 @@ foreach ($videoFile in $videoList) {
 	}
 	Write-LogInfo -LogPath $LogFile -Message "`nHEVC: $IsHEVC" -ToScreen
 	# This code renames non-HEVC videos with _converted suffix and optionally converts mp4 to mkv.
-	if (-not $Logonly) {
+	if (-not $LogOnly) {
 		if (!$IsHEVC) {
 			Write-LogInfo -LogPath $LogFile -Message "`nConverting file" -ToScreen
-			Write-LogInfo -LogPath $LogFile -Message 'Renamimg Original file' -ToScreen
+			Write-LogInfo -LogPath $LogFile -Message 'Renaming Original file' -ToScreen
 			$outputFile = Join-Path $outputPath $videoFile.Name.Replace($videoFile.Extension, '_converted.mkv')
 			if ($videoFile.Extension -eq '.mp4') {
-				Write-LogInfo -LogPath $LogFile -Message 'Renamimg MP4 file to MKV' -ToScreen
+				Write-LogInfo -LogPath $LogFile -Message 'Renaming MP4 file to MKV' -ToScreen
 				$outputFile = $outputFile.Replace('.mp4', '.mkv')
 			} elseif ($videoFile.Extension -eq '.avi') {
-				Write-LogInfo -LogPath $LogFile -Message 'Renamimg MP4 file to MKV' -ToScreen
+				Write-LogInfo -LogPath $LogFile -Message 'Renaming MP4 file to MKV' -ToScreen
 				$outputFile = $outputFile.Replace('.avi', '.mkv')
 			}
 
 			# This code uses x265 to re-encode a video and displays a message after completion.
 			Write-LogInfo -LogPath $LogFile -Message 'Re-encoding file' -ToScreen
 			& $ffmpegPath -i $videoFile.FullName -c:v libx265 -preset medium -crf 23 -c:a copy $outputFile
-			Write-LogInfo -LogPath $LogFile -Message "[INFO] $($videoFile.FullName) has been rencoded as $($outputFile)" -ToScreen
+			Write-LogInfo -LogPath $LogFile -Message "[INFO] $($videoFile.FullName) has been re-encoded as $($outputFile)" -ToScreen
 		} else {
 			<# Action when all if and elseif conditions are false #>
-			Write-LogInfo -LogPath $LogFile -Message 'Convergion skipped' -ToScreen
+			Write-LogInfo -LogPath $LogFile -Message 'Conversion skipped' -ToScreen
 		}
 	}
 
