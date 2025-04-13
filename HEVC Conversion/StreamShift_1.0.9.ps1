@@ -10,7 +10,13 @@
     Boolean switch for LogOnly
 
 .PARAMETER InputPath
-    Source Path for files
+    Literal path to Source files to convert
+
+.PARAMETER ffmpegPath
+    Literal path to FFMpeg.exe file
+
+.PARAMETER ffprobePath
+    Literal path to FFprobe.exe file
 
 .INPUTS
 	.none
@@ -23,10 +29,13 @@
 	Data:  $scriptPath\$scriptName.csv
 
 .Example
-    StreamShift.ps1 -verbose
+  StreamShift.ps1
 
 .Example
-    StreamShift.ps1 -inputPath '\\pvr\Series\Star Trek\Discovery'
+  StreamShift.ps1 -LogOnly
+
+	.Example
+  StreamShift.ps1 -inputPath '\\pvr\Series\Star Trek\Discovery'
 
 .Example
     StreamShift.ps1 -inputPath '\\pvr\Series\Star Trek\Discovery' -ffmpegPath 'C:\Program Files\ffmpeg\bin\ffmpeg.exe' -ffprobePath 'C:\Program Files\ffmpeg\bin\ffprobe.exe' -LogOnly
@@ -79,11 +88,11 @@ You can see a list of current presets with -preset help (see example below). If 
 [CmdletBinding()]
 param(
 	[parameter(ValueFromPipeline = $true, Mandatory = $false)]
-	[String]$inputPath = '\\pvr\Series\Boston Legal',
+	[String]$inputPath = '\\pvr\Series',
 	[parameter(ValueFromPipeline = $true, Mandatory = $false)]
-	[String]$ffmpegPath = "$ScriptPath\ffmpeg.exe",
+	[String]$ffmpegPath = '.\ffmpeg.exe',
 	[parameter(ValueFromPipeline = $true, Mandatory = $false)]
-	[String]$ffprobePath = "$ScriptPath\ffprobe.exe",
+	[String]$ffprobePath = '.\ffprobe.exe',
 	[parameter(ValueFromPipeline = $true, Mandatory = $false)]
 	[switch]$LogOnly
 )
@@ -101,13 +110,17 @@ $CSVName = ($ScriptName).Replace('.ps1', '') + '-' + $LogDate + '.csv'
 $CSVFile = $CSVPath + "$CSVName"
 
 # This code sets directories for video encoding and tool paths.
-$ffmpegPath = "$ScriptPath\ffmpeg.exe"
-$ffprobePath = "$ScriptPath\ffprobe.exe"
-
+# $ffmpegPath = "$ScriptPath\ffmpeg.exe"
+# $ffprobePath = "$ScriptPath\ffprobe.exe"
+Write-Verbose '======================='
 Write-Verbose "InformationPreference: $InformationPreference"
 Write-Verbose "VerbosePreference:$VerbosePreference"
+Write-Verbose "ScriptPath: $ScriptPath"
 Write-Verbose "LogFile:	$LogFile"
 Write-Verbose "DataFile:	$CSVFile"
+Write-Verbose "ffmpegPath:	$ffmpegPath"
+Write-Verbose "ffprobePath:	$ffprobePath"
+Write-Verbose "=======================`n"
 #EndRegion Variables
 
 
