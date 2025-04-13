@@ -12,12 +12,6 @@
 .PARAMETER InputPath
     Source Path for files
 
-.PARAMETER ffmpegPath
-    [String] Path to FFMPEG.exe. Default path is "$ScriptPath\ffmpeg.exe",
-
-.PARAMETER ffprobePath
-    [String] Default path is "$ScriptPath\ffmpeg.exe",
-
 .INPUTS
 	.none
 
@@ -29,16 +23,10 @@
 	Data:  $scriptPath\$scriptName.csv
 
 .Example
-    StreamShift.ps1
-
-.Example
-    StreamShift.ps1 -LogOnly
+    StreamShift.ps1 -verbose
 
 .Example
     StreamShift.ps1 -inputPath '\\pvr\Series\Star Trek\Discovery'
-
-.Example
-    StreamShift.ps1 -inputPath '\\pvr\Series\Star Trek\Discovery' -LogOnly
 
 .Example
     StreamShift.ps1 -inputPath '\\pvr\Series\Star Trek\Discovery' -ffmpegPath 'C:\Program Files\ffmpeg\bin\ffmpeg.exe' -ffprobePath 'C:\Program Files\ffmpeg\bin\ffprobe.exe' -LogOnly
@@ -49,7 +37,7 @@
     Date:       2023-04-20
     LAST EDIT:  2025-03-22
     KEYWORDS:   Video Encoding, HEVC, x265, ffmpeg, ffprobe, PowerShell
-		VERSION:    1.0.9
+		VERSION:    1.0.8
 
     V1.0.0 Initial version
     V1.0.1 - Modified the script to reference the locations of FFmpeg and FFprobe using a variable, instead of directly calling them.
@@ -60,7 +48,6 @@
     V1.0.6 - Resolved problem with invoking executables using variables.
     V1.0.7 - Changed FFprobe to exclude 720p format and renamed output file.
     V1.0.8 - Added PSLogging for more effective login, added Switch for Logging only, and added some file/Stream info to the output.
-		V1.0.9 - Added -Multiple parameters to specify values
 
 
 .link
