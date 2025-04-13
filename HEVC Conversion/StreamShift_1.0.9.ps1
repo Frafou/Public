@@ -88,7 +88,7 @@ You can see a list of current presets with -preset help (see example below). If 
 [CmdletBinding()]
 param(
 	[parameter(ValueFromPipeline = $true, Mandatory = $false)]
-	[String]$inputPath = '\\pvr\Series',
+	[String]$inputPath = '\\server\share\video',
 	[parameter(ValueFromPipeline = $true, Mandatory = $false)]
 	[String]$ffmpegPath = '.\ffmpeg.exe',
 	[parameter(ValueFromPipeline = $true, Mandatory = $false)]
@@ -98,9 +98,10 @@ param(
 )
 
 #Define location of my script variable
-$versionNumber = '1.0.8'
+$versionNumber = '1.0.9'
 $ScriptName = Split-Path -Path $MyInvocation.MyCommand.Definition -Leaf
 $ScriptPath = Split-Path -Path $MyInvocation.MyCommand.Definition -Parent
+Set-Location $ScriptPath
 $LogDate = Get-Date -Format yyyyMMdd-HHmmss
 $logPath = "$ScriptPath" + '\Logs\'
 $LogName = ($ScriptName).Replace('.ps1', '') + '-' + $LogDate + '.log'
