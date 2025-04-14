@@ -10,7 +10,7 @@
     Boolean switch for LogOnly
 
 .PARAMETER InputPath
-    Literal path to Source files to convert
+    Literal path of Source files to convert
 
 .PARAMETER ffmpegPath
     Literal path to FFMpeg.exe file
@@ -46,7 +46,7 @@
     Date:       2023-04-20
     LAST EDIT:  2025-03-22
     KEYWORDS:   Video Encoding, HEVC, x265, ffmpeg, ffprobe, PowerShell
-		VERSION:    1.0.8
+		VERSION:    1.0.9
 
     V1.0.0 Initial version
     V1.0.1 - Modified the script to reference the locations of FFmpeg and FFprobe using a variable, instead of directly calling them.
@@ -57,6 +57,7 @@
     V1.0.6 - Resolved problem with invoking executables using variables.
     V1.0.7 - Changed FFprobe to exclude 720p format and renamed output file.
     V1.0.8 - Added PSLogging for more effective login, added Switch for Logging only, and added some file/Stream info to the output.
+		V1.0.9 - added addition parameters for path and executables
 
 
 .link
@@ -258,10 +259,6 @@ foreach ($videoFile in $videoList) {
 
 }
 
-# This code stops transcript logging, clears the console, displays a message, and waits for user input before exiting the script.
-
-Write-LogInfo -LogPath $LogFile -Message "$scriptName $versionNumber has finished running at $([string]::Format('{0:MM-dd-yyyy HH:mm:ss}', [datetime]::Now)).`n`nView the log file $logName in $logPath for full details." -ToScreen
-#Read-Host "`nPress [⏎] to exit the script."
 #-----------
 #End Processing
 #-----------
@@ -271,11 +268,8 @@ Write-LogInfo -LogPath $LogFile -Message "$scriptName $versionNumber has finishe
 Write-LogInfo -LogPath $LogFile -Message "`n`n=======================" -ToScreen
 Write-LogInfo -LogPath $LogFile -Message "`nEnding $ScriptName script." -ToScreen
 
-Write-LogInfo -LogPath $LogFile -Message "ReportFile:	$ReportFile" -ToScreen
 Write-LogInfo -LogPath $LogFile -Message "DataFile:		$CSVFile" -ToScreen
 Write-LogInfo -LogPath $LogFile -Message "LogFile:		$LogFile" -ToScreen
-Write-LogInfo -LogPath $LogFile -Message "ReportFile:	$ReportFile" -ToScreen
-
 Stop-Log -LogPath $LogFile -ToScreen -NoExit
 
 #EndRegion Finish Script
