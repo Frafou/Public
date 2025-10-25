@@ -44,7 +44,7 @@
 	11 gMSA account validation failed
 
 .link
-Https://www.
+https://woshub.com/group-managed-service-accounts-in-windows-server-2012/
 
  #>
 <#

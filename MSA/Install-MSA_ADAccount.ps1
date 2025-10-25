@@ -49,8 +49,8 @@
 		13  Failed to remove ADServiceAccount
 		14  Failed to remove MSA account
 
-.link
-Https://www.
+.LINK
+ https://woshub.com/group-managed-service-accounts-in-windows-server-2012/
 
  #>
 <#
@@ -279,7 +279,7 @@ process {
 		Write-Log "Removing MSA account $MSAName." -ForegroundColor Green
 		try {
 			Remove-ADServiceAccount -Identity $MSAName -Confirm:$false
-			Write-Log 'MSA account $MSANamet removed successfully.' -ForegroundColor Green
+			Write-Log "MSA account $MSAName removed successfully." -ForegroundColor Green
 		} catch {
 			Write-Log "Failed to remove MSA account: $($_.Exception.Message)" -ForegroundColor Red
 			exit 14
