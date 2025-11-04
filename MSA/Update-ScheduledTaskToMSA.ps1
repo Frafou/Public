@@ -19,9 +19,11 @@
     Update-ScheduledTaskToMSA.ps1 -WhatIf
 
 .Notes
-    NAME:       Update-ScheduledTaskToMSA.ps1
-    AUTHOR:     Francois Fournier
-    LAST EDIT:  2025-10-25
+    Author: Francois Fournier
+    Created: 2025-01-01
+    Version: 1.0.0
+    Last Updated: 2025-01-01
+    License: MIT License
 
     V1.0 Initial version
 

@@ -15,12 +15,14 @@
     Update-TaskSchedule.ps1
 
 .Example
-    Update-TaskSchedule.ps1 -WhatIf
+    Update-TaskSchedule.ps1 -verbose
 
 .Notes
-    NAME:       Update-TaskSchedule.ps1
-    AUTHOR:     Francois Fournier
-    LAST EDIT:  2025-10-25
+    Author: Francois Fournier
+    Created: 2025-01-01
+    Version: 1.0.0
+    Last Updated: 2025-01-01
+    License: MIT License
 
     V1.0 Initial version
 
