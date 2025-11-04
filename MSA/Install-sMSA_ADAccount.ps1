@@ -1,15 +1,15 @@
 ﻿<#
 .SYNOPSIS
-	Create and Install MSA Account
+	Create and Install MSA Account for Active Directory On-Demand Assessment
 
 .DESCRIPTION
 	Verify required configuration, create MSA account in Active Directory and install it on target server.
 
 .PARAMETER MSAName
-    String parameter for MSA Name
+  String parameter for MSA Name
 
 .PARAMETER Remove
-    Switch to remove MSA account.
+  Switch to remove MSA account.
 
 .INPUTS
 	.none
@@ -17,43 +17,40 @@
 .OUTPUTS
 	Log:  Install-MSA_ADAccount-$Date.log
 
+.Example
+  Install-MSA_ADAccount.ps1 -verbose
 
 .Example
-    Install-MSA_ADAccount.ps1 -verbose
-
-.Example
-    Install-MSA_ADAccount.ps1 -verbose -MSAName "MSA_ADAssess"
-
+  Install-MSA_ADAccount.ps1 -verbose -MSAName "MSA_ADAssess"
 
 .Notes
-    Author: Francois Fournier
-    Created: 2025-01-01
-    Version: 1.0.0
-    Last Updated: 2025-01-01
-    License: MIT License
-
-    V1.0 Initial version
-
+  Author: Francois Fournier
+  Created: 2025-01-01
+  Version: 1.0.0
+  Last Updated: 2025-01-01
+  License: MIT License
+  V1.0 Initial version
 
 .ErrorCodes
-		1   Script not run as Administrator
-		2   Active Directory module installation failed
-		3   Active Directory module import failed
-		4   Unable to retrieve Forest information
-		5   KDS Root Key creation failed
-		6   MSA account creation failed
-		7   MSA account does not exist in Active Directory
-		8   Unable to add MSA account to 'Enterprise Admins'
-		9   Unable to add MSA account to 'Domain Admins'
-		10  MSA account installation failed
-		11  MSA account is not valid
-		12  Failed to remove 'Log on as a Batch Job' right
-		13  Failed to remove ADServiceAccount
-		14  Failed to remove MSA account
+	1	MSA length exceeded 15 characters
+	2   Script not run as Administrator
+	3   Active Directory module installation failed
+	4   Active Directory module import failed
+	5   Unable to retrieve Forest information
+	6   KDS Root Key creation failed
+	7   MSA account creation failed
+	8   MSA account does not exist in Active Directory
+	9   Unable to add MSA account to 'Enterprise Admins'
+	10   Unable to add MSA account to 'Domain Admins'
+	11   Unable to add MSA account to 'Domain Admins'
+	12  MSA account installation failed
+	13  MSA account is not valid
+	14  Failed to remove 'Log on as a Batch Job' right
+	15  Failed to remove ADServiceAccount
+	16  Failed to remove MSA account
 
 .LINK
- https://woshub.com/group-managed-service-accounts-in-windows-server-2012/
-
+ 	https://woshub.com/group-managed-service-accounts-in-windows-server-2012/
  #>
 <#
 #Requires -Version <N>[.<n>]
@@ -125,6 +122,7 @@ begin {
 
 
 	function Add-RightToUser([string] $Username, $Right) {
+		<# Add error handling#>
 		$tmp = New-TemporaryFile
 
 		$TempConfigFile = "$tmp.inf"
@@ -179,6 +177,7 @@ begin {
 	}
 
 	function Remove-RightFromUser([string] $Username, $Right) {
+		<# Add error handling#>
 		$tmp = New-TemporaryFile
 
 		$TempConfigFile = "$tmp.inf"
@@ -207,7 +206,7 @@ begin {
 				Write-Log 'Validation Succeeded' -Level 'INFO'
 			}
 
-			Write-Log 'Importing new policy on temp database'
+			Write-Log 'Importing new policy on temp database' -Level
 			secedit /import /cfg $TempConfigFile /db $TempDbFile
 
 			Write-Log 'Applying new policy to machine' -Level 'INFO'
@@ -233,10 +232,18 @@ process {
 
 	Write-Log 'Script started.' -Level 'INFO'
 
+
+	if ($MSAName.Length -ge 15) {
+		Write-Log 'MSA Name must be less than 15 characters.' -Level 'ERROR'
+		exit 1
+	} else {
+		Write-Log 'MSA Name is valid.' -Level 'INFO'
+	}
+
 	# Check if running as Administrator
 	if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] 'Administrator')) {
 		Write-Log 'Script must be run as Administrator.' -Level 'ERROR'
-		exit 1
+		exit 2
 	}
 
 	# Check OS version
@@ -256,7 +263,7 @@ process {
 			Write-Log 'Installation completed successfully.' -Level 'INFO'
 		} catch {
 			Write-Log "Failed to install the Active Directory module. Error: $_" -Level 'ERROR'
-			exit 2
+			exit 3
 		}
 	}
 
@@ -266,13 +273,13 @@ process {
 		Write-Log 'Active Directory module successfully imported.' -Level 'INFO'
 	} catch {
 		Write-Log 'Active Directory module could not be imported. Please check the installation.' -Level 'ERROR'
-		exit 3
+		exit 4
 	}
 
 	$Forest = (Get-ADDomain).Forest
 	if ($null -eq $Forest) {
 		Write-Log 'Unable to retrieve Forest information from Active Directory.' -Level 'ERROR'
-		exit 4
+		exit 5
 	} else {
 		Write-Log "Forest retrieved: $Forest" -Level 'INFO'
 	}
@@ -288,7 +295,7 @@ process {
 			Write-Log "'Log on as a Batch Job' right removed successfully." -Level 'INFO'
 		} catch {
 			Write-Log "Failed to remove 'Log on as a Batch Job' right : $($_.Exception.Message)" -Level 'ERROR'
-			exit 12
+			exit 14
 		}
 
 		Write-Log "Uninstall ADServiceAccount $MSANameIdentity." -Level 'INFO'
@@ -297,7 +304,7 @@ process {
 			Write-Log 'ADServiceAccount removed successfully.' -Level 'INFO'
 		} catch {
 			Write-Log "Failed to remove ADServiceAccount: $($_.Exception.Message)" -Level 'ERROR'
-			exit 13
+			exit 15
 		}
 
 		Write-Log "Removing MSA account $MSAName." -Level 'INFO'
@@ -306,7 +313,7 @@ process {
 			Write-Log "MSA account $MSAName removed successfully." -Level 'INFO'
 		} catch {
 			Write-Log "Failed to remove MSA account: $($_.Exception.Message)" -Level 'ERROR'
-			exit 14
+			exit 16
 		}
 
 	} else {
@@ -320,7 +327,7 @@ process {
 				Start-Sleep -s 10
 			} catch {
 				Write-Log "Failed to create KDS Root Key: $($_.Exception.Message)" -Level 'ERROR'
-				exit 5
+				exit 6
 			}
 		}
 
@@ -337,7 +344,7 @@ process {
 
 		} catch {
 			Write-Log "Failed to create MSA account: $($_.Exception.Message)" -Level 'ERROR'
-			exit 6
+			exit 7
 		}
 		## Test MSA account installation in Server
 
@@ -345,7 +352,7 @@ process {
 			Write-Log "MSA account $MSAName exists in Active Directory." -Level 'INFO'
 		} else {
 			Write-Log "MSA account $MSAName does not exist in Active Directory." -Level 'ERROR'
-			exit 7
+			exit 8
 		}
 
 		Write-Log "Add MSA account $MSAName to 'Enterprise Admins' group." -Level 'INFO'
@@ -355,7 +362,7 @@ process {
 			Write-Log 'MSA account added successfully.' -Level 'INFO'
 		} catch {
 			Write-Log "Unable to add MSA account to 'Enterprise Admins': $($_.Exception.Message)" -Level 'ERROR'
-			exit 8
+			exit 9
 		}
 		Write-Log "Add MSA account $MSAName to 'Domain Admins' group." -Level 'INFO'
 		try {
@@ -363,7 +370,7 @@ process {
 			Write-Log 'MSA account added successfully.' -Level 'INFO'
 		} catch {
 			Write-Log "Unable to add MSA account to 'Domain Admins': $($_.Exception.Message)" -Level 'ERROR'
-			exit 9
+			exit 10
 		}
 
 		Write-Log 'Adding Logon as a batch Right' -Level 'INFO'
@@ -373,6 +380,7 @@ process {
 		} catch {
 
 			Write-Log "Unable to add Logon as a batch Job right: $($_.Exception.Message)" -Level 'ERROR'
+			exit 11
 		}
 
 		Write-Log "Install MSA account on $ServerName." -Level 'INFO'
@@ -381,7 +389,7 @@ process {
 			Write-Log "MSA account installed successfully on $ServerName." -Level 'INFO'
 		} catch {
 			Write-Log "Failed to install MSA account: $($_.Exception.Message)" -Level 'ERROR'
-			exit 10
+			exit 12
 		}
 
 
@@ -389,7 +397,7 @@ process {
 			Write-Log "MSA account $MSAName is valid." -Level 'INFO'
 		} else {
 			Write-Log "MSA account $MSAName is not valid." -Level 'ERROR'
-			exit 11
+			exit 13
 		}
 
 		#-----------
