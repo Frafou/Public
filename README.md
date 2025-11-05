@@ -1,20 +1,23 @@
-# General available scripts 
+# General available scripts
 
-# Contributing
+## Contributing
+
 Guidelines for contributing to your project.
 
 1. Fork the repository
 2. Create a new branch (git checkout -b feature-branch)
 3. Make your changes
 4. Commit your changes (git commit -m 'Add some feature')
-4. Push to the branch (git push origin feature-branch)
-5. Open a pull request
+5. Push to the branch (git push origin feature-branch)
+6. Open a pull request
 
-# License
+## License
+
 MIT license.
 
-# Contact
+## Contact
+
 How to reach you for questions or feedback.
 
-Email: GitHub@ffournier.ca
+Email: <GitHub@ffournier.ca>
 GitHub: Frafou
