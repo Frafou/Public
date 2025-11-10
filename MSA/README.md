@@ -1,4 +1,35 @@
 # Managed Services Accounts
 
-These script are provided to help create and manage Managed Service Accounts (MSA).
-The are provided for demonstration purposes only
+## Description
+
+These scripts are designed to assist with the creation and management of Managed Service Accounts.
+They include options for conducting on-demand assessments in both Active Directory and Exchange environments.
+
+## Disclaimer
+
+This code is provided for demonstration purposes only.
+It is intended to illustrate concepts and should not be used in production environments without proper review, testing, and validation.
+The authors and distributors of this code make no warranties regarding its functionality, security, or suitability for any specific use.
+Use at your own risk.
+
+## Contributing
+
+Guidelines for contributing to this project.
+
+1. Fork the repository
+2. Create a new branch (git checkout -b feature-branch)
+3. Make your changes
+4. Commit your changes (git commit -m 'Add some feature')
+5. Push to the branch (git push origin feature-branch)
+6. Open a pull request
+
+## License
+
+MIT license.
+
+## Contact
+
+How to reach me for questions or feedback.
+
+Email: <GitHub@ffournier.ca>
+GitHub: Frafou

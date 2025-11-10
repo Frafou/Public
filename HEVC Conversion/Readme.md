@@ -1,5 +1,12 @@
 # HEVC Conversion
 
+## Disclaimer
+
+This code is provided for demonstration purposes only.
+It is intended to illustrate concepts and should not be used in production environments without proper review, testing, and validation.
+The authors and distributors of this code make no warranties regarding its functionality, security, or suitability for any specific use.
+Use at your own risk.
+
 ## Synopsis
 
 This PowerShell script re-encodes non-HEVC video files in a specified directory and its subdirectories using x265 HEVC video codec with a medium preset and 23 quality.
