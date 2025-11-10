@@ -292,5 +292,3 @@ while ($activeJobs -gt 0) {
 Write-log '-----------------------------' -Level INFO
 Write-log 'All update jobs are complete.' -Level INFO
 Write-log 'Ending job' -Level INFO
-
-
