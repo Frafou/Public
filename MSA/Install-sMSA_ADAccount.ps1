@@ -15,7 +15,7 @@ We grant You a nonexclusive, royalty-free right to use and modify the Sample Cod
 	if the Remove parameter is used will remove the MSA account and its configuration.
 
 .PARAMETER MSAName
-  String parameter for MSA Name
+  String parameter for MSA Name.
 
 .PARAMETER Remove
   Switch to remove MSA account.

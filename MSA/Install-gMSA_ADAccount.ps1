@@ -7,7 +7,7 @@ We grant You a nonexclusive, royalty-free right to use and modify the Sample Cod
 
 <#
 .SYNOPSIS
-	Create and Install gMSA Account
+	Create and Install gMSA Account.
 
 .DESCRIPTION
 	Verify required configuration, create gMSA account in Active Directory and install it on target server.
