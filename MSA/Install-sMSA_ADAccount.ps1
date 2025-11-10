@@ -7,16 +7,24 @@ We grant You a nonexclusive, royalty-free right to use and modify the Sample Cod
 
 <#
 .SYNOPSIS
-	Create and Install MSA Account for Active Directory On-Demand Assessment
+	Create and Install or Remove MSA Account.
 
 .DESCRIPTION
-	Verify required configuration, create MSA account in Active Directory and install it on target server.
+	Verify required configuration, create MSA account in Active Directory and install it on target server, as well as required group membership(s) for Active Directory or Exchange On-Demand Assessment if the corresponding parameter is used.
+
+	if the Remove parameter is used will remove the MSA account and its configuration.
 
 .PARAMETER MSAName
   String parameter for MSA Name
 
 .PARAMETER Remove
   Switch to remove MSA account.
+
+.PARAMETER AD_ODA
+  Switch to add MSA account to required groups for Active Directory On-Demand Assessment.
+
+.PARAMETER EX_ODA
+  Switch to add MSA account to required groups for Exchange On-Demand Assessment.
 
 .INPUTS
 	.none
@@ -48,13 +56,17 @@ We grant You a nonexclusive, royalty-free right to use and modify the Sample Cod
 	7   MSA account creation failed
 	8   MSA account does not exist in Active Directory
 	9   Unable to add MSA account to 'Enterprise Admins'
-	10   Unable to add MSA account to 'Domain Admins'
-	11   Unable to add MSA account to 'Domain Admins'
+	10  Unable to add MSA account to 'Domain Admins'
+	11  Unable to add MSA account to the Exchange 'Organization Management'
 	12  MSA account installation failed
 	13  MSA account is not valid
-	14  Failed to remove 'Log on as a Batch Job' right
-	15  Failed to remove ADServiceAccount
-	16  Failed to remove MSA account
+	14	Failed to add 'Log on as a Batch Job' right
+	15  Failed to remove 'Log on as a Batch Job' right
+	16  Failed to remove ADServiceAccount
+	17  Failed to remove MSA account
+	18  Unable to remove MSA account to 'Enterprise Admins'
+	19  Unable to remove MSA account to 'Domain Admins'
+	20  Unable to remove MSA account to the Exchange 'Organization Management'
 
 .LINK
  	https://woshub.com/group-managed-service-accounts-in-windows-server-2012/
@@ -76,7 +88,14 @@ param(
 	[string]$MSAName = 'MSA_ADAssess',
 
 	[parameter(ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true, HelpMessage = 'Remove MSA account', Mandatory = $false, Position = 1)]
-	[switch]$Remove
+	[switch]$Remove,
+
+	[parameter(ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true, HelpMessage = 'Remove MSA account', Mandatory = $false, Position = 1)]
+	[switch]$AD_ODA,
+
+	[parameter(ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true, HelpMessage = 'Remove MSA account', Mandatory = $false, Position = 1)]
+	[switch]$EX_ODA
+
 )
 # =============================================================================
 #region begin
@@ -294,6 +313,38 @@ process {
 
 
 	if ($Remove) {
+
+		# Remove from groups if required
+		if ($AD_ODA) {
+			Write-Log "Removing MSA account $MSAName to 'Enterprise Admins' group." -Level 'INFO'
+			try {
+				Remove-ADGroupMember -Identity 'Enterprise Admins' -Members $MSANameIdentity
+				Write-Log 'MSA account removed successfully.' -Level 'INFO'
+			} catch {
+				Write-Log "Unable to add MSA account to 'Enterprise Admins': $($_.Exception.Message)" -Level 'ERROR'
+				exit 9
+			}
+
+			Write-Log "Removing MSA account $MSAName to 'Domain Admins' group." -Level 'INFO'
+			try {
+				Remove-ADGroupMember -Identity 'Enterprise Admins' -Members $MSANameIdentity
+				Write-Log 'MSA account removed successfully.' -Level 'INFO'
+			} catch {
+				Write-Log "Unable to add MSA account to 'Enterprise Admins': $($_.Exception.Message)" -Level 'ERROR'
+				exit 9
+			}
+		}
+		if ( $EX_ODA) {
+			Write-Log "Removing MSA account $MSAName to 'Organization Management' group." -Level 'INFO'
+			try {
+				Remove-ADGroupMember -Identity ''Organization Management'' -Members $MSANameIdentity
+				Write-Log 'MSA account removed successfully.' -Level 'INFO'
+			} catch {
+				Write-Log "Unable to add MSA account to 'Enterprise Admins': $($_.Exception.Message)" -Level 'ERROR'
+				exit 9
+			}
+		}
+
 		# Remove MSA account
 		Write-Log 'Removing MSA configuration.' -Level 'INFO'
 
@@ -303,7 +354,7 @@ process {
 			Write-Log "'Log on as a Batch Job' right removed successfully." -Level 'INFO'
 		} catch {
 			Write-Log "Failed to remove 'Log on as a Batch Job' right : $($_.Exception.Message)" -Level 'ERROR'
-			exit 14
+			exit 15
 		}
 
 		Write-Log "Uninstall ADServiceAccount $MSANameIdentity." -Level 'INFO'
@@ -312,7 +363,7 @@ process {
 			Write-Log 'ADServiceAccount removed successfully.' -Level 'INFO'
 		} catch {
 			Write-Log "Failed to remove ADServiceAccount: $($_.Exception.Message)" -Level 'ERROR'
-			exit 15
+			exit 16
 		}
 
 		Write-Log "Removing MSA account $MSAName." -Level 'INFO'
@@ -321,8 +372,9 @@ process {
 			Write-Log "MSA account $MSAName removed successfully." -Level 'INFO'
 		} catch {
 			Write-Log "Failed to remove MSA account: $($_.Exception.Message)" -Level 'ERROR'
-			exit 16
+			exit 17
 		}
+
 
 	} else {
 
@@ -362,33 +414,55 @@ process {
 			Write-Log "MSA account $MSAName does not exist in Active Directory." -Level 'ERROR'
 			exit 8
 		}
+		<#
+		Active Directory On-Demand Assessment
+		#>
+		if ($AD_ODA) {
+			Write-Log "Add MSA account $MSAName to 'Enterprise Admins' group." -Level 'INFO'
+			try {
 
-		Write-Log "Add MSA account $MSAName to 'Enterprise Admins' group." -Level 'INFO'
-		try {
-
-			Add-ADGroupMember -Identity 'Enterprise Admins' -Members $MSANameIdentity
-			Write-Log 'MSA account added successfully.' -Level 'INFO'
-		} catch {
-			Write-Log "Unable to add MSA account to 'Enterprise Admins': $($_.Exception.Message)" -Level 'ERROR'
-			exit 9
+				Add-ADGroupMember -Identity 'Enterprise Admins' -Members $MSANameIdentity
+				Write-Log 'MSA account added successfully.' -Level 'INFO'
+			} catch {
+				Write-Log "Unable to add MSA account to 'Enterprise Admins': $($_.Exception.Message)" -Level 'ERROR'
+				exit 9
+			}
+			Write-Log "Add MSA account $MSAName to 'Domain Admins' group." -Level 'INFO'
+			try {
+				Add-ADGroupMember -Identity 'Domain Admins' -Members $MSANameIdentity
+				Write-Log 'MSA account added successfully.' -Level 'INFO'
+			} catch {
+				Write-Log "Unable to add MSA account to 'Domain Admins': $($_.Exception.Message)" -Level 'ERROR'
+				exit 10
+			}
 		}
-		Write-Log "Add MSA account $MSAName to 'Domain Admins' group." -Level 'INFO'
-		try {
-			Add-ADGroupMember -Identity 'Domain Admins' -Members $MSANameIdentity
-			Write-Log 'MSA account added successfully.' -Level 'INFO'
-		} catch {
-			Write-Log "Unable to add MSA account to 'Domain Admins': $($_.Exception.Message)" -Level 'ERROR'
-			exit 10
-		}
+		<#
+		Exchange On-Demand Assessment
+		#>
+		if ($EX_ODA) {
+			Write-Log "Add MSA account $MSAName to 'Exchange Admins' group." -Level 'INFO'
+			try {
 
-		Write-Log 'Adding Logon as a batch Right' -Level 'INFO'
+				Add-ADGroupMember -Identity 'Organization Management' -Members $MSANameIdentity
+				Write-Log 'MSA account added successfully.' -Level 'INFO'
+			} catch {
+				Write-Log "Unable to add MSA account to 'Exchange Organization Management': $($_.Exception.Message)" -Level 'ERROR'
+				exit 11
+			}
+
+		}
+		<#
+		Logon as a batch job Right
+		#>
+
+		Write-Log 'Adding Logon as a batch job Right' -Level 'INFO'
 		try {
 			Add-RightToUser -Username $MSANameIdentity -Right 'SeBatchLogonRight'
-			Write-Log 'Logon as a batch Right Added' -Level 'INFO'
+			Write-Log 'Logon as a batch Job Right Added' -Level 'INFO'
 		} catch {
 
 			Write-Log "Unable to add Logon as a batch Job right: $($_.Exception.Message)" -Level 'ERROR'
-			exit 11
+			exit 14
 		}
 
 		Write-Log "Install MSA account on $ServerName." -Level 'INFO'
