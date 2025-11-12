@@ -67,9 +67,8 @@ We grant You a nonexclusive, royalty-free right to use and modify the Sample Cod
 	14  MSA account is not valid
 	15	Failed to add 'Log on as a Batch Job' right
 	16 	Failed to add MSA account to local Administrators group.
-	17 	Failed to locate the User in local Administrators group.
+	17 	Failed to locate the MSA in local Administrators group.
 
-	# exit codes for removal can be activated if needed otherwise the script will continue removing other components
 	51  Failed to remove 'Log on as a Batch Job' right
 	52  Failed to remove ADServiceAccount
 	53  Failed to remove MSA account
@@ -267,7 +266,7 @@ begin {
 
 			Remove-Item $tmp* -ea 0
 		} else {
-			Write-Log "User $Username did not have right" -Level 'INFO'
+			Write-Log "MSA $Username did not have right" -Level 'INFO'
 		}
 	}
 	#endregion Functions
@@ -334,20 +333,21 @@ process {
 		Write-Log 'Failed to retrieve Domain information from Active Directory.' -Level 'ERROR'
 		exit 5
 	} else {
-		Write-Log "Domain retrieved: $Domain" -Level 'INFO'
+		Write-Log "Domain retrieved: $DomainName" -Level 'INFO'
+		Write-Log "Domain FQDN: $DomainFQDN" -Level 'INFO'
 	}
 
 	if ($Remove) {
-		Write-Log "Validating user '$MSAName' in the local Administrators group." -Level 'INFO'
-		# Check if the user exists locally
+		Write-Log "Validating MSA '$MSAName' in the local Administrators group." -Level 'INFO'
+		# Check if the MSA exists locally
 		$userExists = Get-LocalGroupMember -Name 'Administrators' -Member "$DomainName\$MSANameIdentity" -ErrorAction SilentlyContinue
 		if ($userExists ) {
-			Write-Log "User '$MSAName' exists in the local Administrators group." -Level 'INFO'
-			#Remove the user to the Administrators group
-			Write-Log "Removing user '$MSAName' in the local Administrators group." -Level 'INFO'
+			Write-Log "MSA '$MSAName' exists in the local Administrators group." -Level 'INFO'
+			#Remove the MSA to the Administrators group
+			Write-Log "Removing MSA '$MSAName' in the local Administrators group." -Level 'INFO'
 			try {
 				Remove-LocalGroupMember -Group 'Administrators' -Member $MSANameIdentity -ErrorAction Stop
-				Write-Log "User '$MSAName' has been removed from the local Administrators group." -Level 'INFO'
+				Write-Log "MSA '$MSAName' has been removed from the local Administrators group." -Level 'INFO'
 			} catch {
 				Write-Log "$($_.Exception.Message)" -Level 'ERROR'
 				#exit 57
@@ -362,7 +362,7 @@ process {
 		if ($AD_ODA) {
 			Write-Log "Removing MSA account $MSAName to 'Enterprise Admins' group." -Level 'INFO'
 			try {
-				Remove-ADGroupMember -Identity 'Enterprise Admins' -Members $MSANameIdentity
+				Remove-ADGroupMember -Identity 'Enterprise Admins' -Members $MSANameIdentity -Confirm:$false
 				Write-Log 'MSA account removed successfully.' -Level 'INFO'
 			} catch {
 				Write-Log "Failed to add MSA account to 'Enterprise Admins': $($_.Exception.Message)" -Level 'ERROR'
@@ -371,7 +371,7 @@ process {
 
 			Write-Log "Removing MSA account $MSAName to 'Domain Admins' group." -Level 'INFO'
 			try {
-				Remove-ADGroupMember -Identity 'Domain Admins' -Members $MSANameIdentity
+				Remove-ADGroupMember -Identity 'Domain Admins' -Members $MSANameIdentity -Confirm:$false
 				Write-Log 'MSA account removed successfully.' -Level 'INFO'
 			} catch {
 				Write-Log "Failed to add MSA account from 'Domain Admins': $($_.Exception.Message)" -Level 'ERROR'
@@ -381,7 +381,7 @@ process {
 		if ( $EX_ODA) {
 			Write-Log "Removing MSA account $MSAName from the Exchange 'Organization Management' group." -Level 'INFO'
 			try {
-				Remove-ADGroupMember -Identity ''Organization Management'' -Members $MSANameIdentity
+				Remove-ADGroupMember -Identity ''Organization Management'' -Members $MSANameIdentity -Confirm:$false
 				Write-Log 'MSA account removed successfully.' -Level 'INFO'
 			} catch {
 				Write-Log "Failed to remove MSA account from the Exchange 'Organization Management' group: $($_.Exception.Message)" -Level 'ERROR'
@@ -441,7 +441,7 @@ process {
 			New-ADServiceAccount -Name $MSANameIdentity -DisplayName $MSAName	-RestrictToSingleComputer -Enabled $true -Description "MSA account for ADAssessment on $ServerName"
 			Write-Log "MSA account $MSAName created successfully." -Level 'INFO'
 
-			Write-Log "Adding MSA account $MSAName local server." -Level 'INFO'
+			Write-Log "Adding MSA account $MSAName  to local server." -Level 'INFO'
 			$Identity = Get-ADComputer -Identity $Servername
 			try {
 				Add-ADComputerServiceAccount -Identity $identity -ServiceAccount $MSANameIdentity
@@ -504,23 +504,23 @@ process {
 		<#
 		Add to local Admin group
 		#>
-		# Add a user to the local Administrators group
+		# Add a MSA to the local Administrators group
 		# Works for local accounts and Microsoft accounts
 		# Requires running PowerShell as Administrator
 		# Pause
-		Write-Log "Adding user '$MSAName' to the local Administrators group." -Level 'INFO'
+		Write-Log "Adding MSA '$MSAName' to the local Administrators group." -Level 'INFO'
 		try {
 
-			# Check if the user exists locally
+			# Check if the MSA exists locally
 			$userExists = Get-ADServiceAccount -Identity $MSANameIdentity -ErrorAction SilentlyContinue
 			if (-not $userExists ) {
-				throw "User '$MSAName' does not exist. Check the name."
+				throw "MSA '$MSAName' does not exist. Check the name."
 			}
 
-			# Add the user to the Administrators group
+			# Add the MSA to the Administrators group
 			Add-LocalGroupMember -Group 'Administrators' -Member "$DomainName\$MSANameIdentity" -ErrorAction Stop
 
-			Write-Log "User '$MSAName' has been added to the local Administrators group." -Level 'INFO'
+			Write-Log "MSA '$MSAName' has been added to the local Administrators group." -Level 'INFO'
 		} catch {
 			Write-Log "$($_.Exception.Message)" -Level 'ERROR'
 			exit 16
