@@ -69,6 +69,7 @@ We grant You a nonexclusive, royalty-free right to use and modify the Sample Cod
 	16 	Failed to add MSA account to local Administrators group.
 	17 	Failed to locate the User in local Administrators group.
 
+	# exit codes for removal can be activated if needed otherwise the script will continue removing other components
 	51  Failed to remove 'Log on as a Batch Job' right
 	52  Failed to remove ADServiceAccount
 	53  Failed to remove MSA account
