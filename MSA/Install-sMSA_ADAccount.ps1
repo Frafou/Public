@@ -14,6 +14,8 @@ We grant You a nonexclusive, royalty-free right to use and modify the Sample Cod
 
 	if the Remove parameter is used will remove the MSA account and its configuration.
 
+	The script need to be run as Administrator on the target server with an account that can create MSA accounts in Active Directory and manage required groups (preferably a domain admins account).
+
 .PARAMETER MSAName
   String parameter for MSA Name.
 
@@ -41,32 +43,39 @@ We grant You a nonexclusive, royalty-free right to use and modify the Sample Cod
 .Notes
   Author: Francois Fournier
   Created: 2025-01-01
-  Version: 1.0.0
+  Version: 1.2
   Last Updated: 2025-01-01
   License: MIT License
   V1.0 Initial version
+	V1.1 added AD_ODA,EX_ODA Parameters
+	V1.2 add domain name, add account to local admins group
 
 .ErrorCodes
-	1	MSA length exceeded 15 characters
-	2   Script not run as Administrator
-	3   Active Directory module installation failed
-	4   Active Directory module import failed
-	5   Unable to retrieve Forest information
-	6   KDS Root Key creation failed
-	7   MSA account creation failed
-	8   MSA account does not exist in Active Directory
-	9   Unable to add MSA account to 'Enterprise Admins'
-	10  Unable to add MSA account to 'Domain Admins'
-	11  Unable to add MSA account to the Exchange 'Organization Management'
-	12  MSA account installation failed
-	13  MSA account is not valid
-	14	Failed to add 'Log on as a Batch Job' right
-	15  Failed to remove 'Log on as a Batch Job' right
-	16  Failed to remove ADServiceAccount
-	17  Failed to remove MSA account
-	18  Unable to remove MSA account to 'Enterprise Admins'
-	19  Unable to remove MSA account to 'Domain Admins'
-	20  Unable to remove MSA account to the Exchange 'Organization Management'
+	1		MSA length exceeded 15 characters
+	2 	Script not run as Administrator
+	3 	Failed to install Active Directory module
+	4 	Failed to import Active Directory module
+	5 	Failed to retrieve Domain information
+	6 	Failed to create KDS Root Key
+	7   Failed to create MSA account
+	8		Failed to add Host $Servername to MSA account:
+	9   Failed to locate the MSA account in Active Directory
+	10  Failed to add MSA account to 'Enterprise Admins'
+	11  Failed to add MSA account to 'Domain Admins'
+	12  Failed to add MSA account to the Exchange 'Organization Management'
+	13  Failed to install the MSA account
+	14  MSA account is not valid
+	15	Failed to add 'Log on as a Batch Job' right
+	16 	Failed to add MSA account to local Administrators group.
+	17 	Failed to locate the User in local Administrators group.
+
+	51  Failed to remove 'Log on as a Batch Job' right
+	52  Failed to remove ADServiceAccount
+	53  Failed to remove MSA account
+	54  Failed to remove MSA account to 'Enterprise Admins'
+	55  Failed to remove MSA account to 'Domain Admins'
+	56  Failed to remove MSA account to the Exchange 'Organization Management'
+	57  Failed to remove MSA account from local Administrators group.
 
 .LINK
  	https://woshub.com/group-managed-service-accounts-in-windows-server-2012/
@@ -116,6 +125,7 @@ begin {
 	$Servername = $env:COMPUTERNAME + '$'
 	$MSANameIdentity = $MSAName + '$'
 
+
 	#endregion Variables
 	#region Functions
 	# Function to write to log
@@ -149,6 +159,7 @@ begin {
 
 
 	function Add-RightToUser([string] $Username, $Right) {
+		Write-Log 'Add-RightToUser' -Level 'INFO'
 		<# Add error handling#>
 		$tmp = New-TemporaryFile
 
@@ -197,14 +208,25 @@ begin {
 			secedit /configure /db $TempDbFile /cfg $TempConfigFile
 
 			Write-Log 'Updating policy' -Level 'INFO'
-			gpupdate /force
+			#gpupdate /force
+			try {
+				Invoke-GPUpdate -Force -ErrorAction Stop
+			}	catch {
+				Write-Log 'Failed to update Group Policy' -Level 'ERROR'
+			}
 
-			Remove-Item $tmp* -ea 0
+			try {
+				Remove-Item $tmp* -ea 0
+			}	catch {
+				Write-Log 'Failed to cleanup files' -Level 'ERROR'
+			}
+
 		}
 	}
 
 	function Remove-RightFromUser([string] $Username, $Right) {
 		<# Add error handling#>
+		Write-Log 'Remove-RightFromUser' -Level 'WARNING'
 		$tmp = New-TemporaryFile
 
 		$TempConfigFile = "$tmp.inf"
@@ -233,7 +255,7 @@ begin {
 				Write-Log 'Validation Succeeded' -Level 'INFO'
 			}
 
-			Write-Log 'Importing new policy on temp database' -Level
+			Write-Log 'Importing new policy on temp database' -Level 'INFO'
 			secedit /import /cfg $TempConfigFile /db $TempDbFile
 
 			Write-Log 'Applying new policy to machine' -Level 'INFO'
@@ -256,7 +278,8 @@ begin {
 # Start Processing
 #--------------------
 process {
-
+	Clear-Host
+	Write-Log '------------------------------------' -Level 'INFO'
 	Write-Log 'Script started.' -Level 'INFO'
 
 
@@ -299,20 +322,40 @@ process {
 		Import-Module ActiveDirectory -ErrorAction Stop
 		Write-Log 'Active Directory module successfully imported.' -Level 'INFO'
 	} catch {
-		Write-Log 'Active Directory module could not be imported. Please check the installation.' -Level 'ERROR'
+		Write-Log 'Failed to import the Active Directory module. Please check the installation.' -Level 'ERROR'
 		exit 4
 	}
 
-	$Forest = (Get-ADDomain).Forest
-	if ($null -eq $Forest) {
-		Write-Log 'Unable to retrieve Forest information from Active Directory.' -Level 'ERROR'
+	$DomainFQDN = (Get-ADDomain).Forest
+	$DomainName = (Get-ADDomain).Name
+
+	if ($null -eq $DomainFQDN) {
+		Write-Log 'Failed to retrieve Domain information from Active Directory.' -Level 'ERROR'
 		exit 5
 	} else {
-		Write-Log "Forest retrieved: $Forest" -Level 'INFO'
+		Write-Log "Domain retrieved: $Domain" -Level 'INFO'
 	}
 
-
 	if ($Remove) {
+		Write-Log "Validating user '$MSAName' in the local Administrators group." -Level 'INFO'
+		# Check if the user exists locally
+		$userExists = Get-LocalGroupMember -Name 'Administrators' -Member "$DomainName\$MSANameIdentity" -ErrorAction SilentlyContinue
+		if ($userExists ) {
+			Write-Log "User '$MSAName' exists in the local Administrators group." -Level 'INFO'
+			#Remove the user to the Administrators group
+			Write-Log "Removing user '$MSAName' in the local Administrators group." -Level 'INFO'
+			try {
+				Remove-LocalGroupMember -Group 'Administrators' -Member $MSANameIdentity -ErrorAction Stop
+				Write-Log "User '$MSAName' has been removed from the local Administrators group." -Level 'INFO'
+			} catch {
+				Write-Log "$($_.Exception.Message)" -Level 'ERROR'
+				#exit 57
+			}
+		} else {
+			Write-Log "Failed to locate '$MSAName' in the local Administrators Group. Check the name." -Level 'ERROR'
+			#exit 17
+		}
+
 
 		# Remove from groups if required
 		if ($AD_ODA) {
@@ -321,27 +364,27 @@ process {
 				Remove-ADGroupMember -Identity 'Enterprise Admins' -Members $MSANameIdentity
 				Write-Log 'MSA account removed successfully.' -Level 'INFO'
 			} catch {
-				Write-Log "Unable to add MSA account to 'Enterprise Admins': $($_.Exception.Message)" -Level 'ERROR'
-				exit 9
+				Write-Log "Failed to add MSA account to 'Enterprise Admins': $($_.Exception.Message)" -Level 'ERROR'
+				exit 10
 			}
 
 			Write-Log "Removing MSA account $MSAName to 'Domain Admins' group." -Level 'INFO'
 			try {
-				Remove-ADGroupMember -Identity 'Enterprise Admins' -Members $MSANameIdentity
+				Remove-ADGroupMember -Identity 'Domain Admins' -Members $MSANameIdentity
 				Write-Log 'MSA account removed successfully.' -Level 'INFO'
 			} catch {
-				Write-Log "Unable to add MSA account to 'Enterprise Admins': $($_.Exception.Message)" -Level 'ERROR'
-				exit 9
+				Write-Log "Failed to add MSA account from 'Domain Admins': $($_.Exception.Message)" -Level 'ERROR'
+				exit 11
 			}
 		}
 		if ( $EX_ODA) {
-			Write-Log "Removing MSA account $MSAName to 'Organization Management' group." -Level 'INFO'
+			Write-Log "Removing MSA account $MSAName from the Exchange 'Organization Management' group." -Level 'INFO'
 			try {
 				Remove-ADGroupMember -Identity ''Organization Management'' -Members $MSANameIdentity
 				Write-Log 'MSA account removed successfully.' -Level 'INFO'
 			} catch {
-				Write-Log "Unable to add MSA account to 'Enterprise Admins': $($_.Exception.Message)" -Level 'ERROR'
-				exit 9
+				Write-Log "Failed to remove MSA account from the Exchange 'Organization Management' group: $($_.Exception.Message)" -Level 'ERROR'
+				exit 12
 			}
 		}
 
@@ -354,7 +397,7 @@ process {
 			Write-Log "'Log on as a Batch Job' right removed successfully." -Level 'INFO'
 		} catch {
 			Write-Log "Failed to remove 'Log on as a Batch Job' right : $($_.Exception.Message)" -Level 'ERROR'
-			exit 15
+			#exit 51
 		}
 
 		Write-Log "Uninstall ADServiceAccount $MSANameIdentity." -Level 'INFO'
@@ -363,7 +406,7 @@ process {
 			Write-Log 'ADServiceAccount removed successfully.' -Level 'INFO'
 		} catch {
 			Write-Log "Failed to remove ADServiceAccount: $($_.Exception.Message)" -Level 'ERROR'
-			exit 16
+			#exit 52
 		}
 
 		Write-Log "Removing MSA account $MSAName." -Level 'INFO'
@@ -372,7 +415,7 @@ process {
 			Write-Log "MSA account $MSAName removed successfully." -Level 'INFO'
 		} catch {
 			Write-Log "Failed to remove MSA account: $($_.Exception.Message)" -Level 'ERROR'
-			exit 17
+			#exit 53
 		}
 
 
@@ -391,15 +434,21 @@ process {
 			}
 		}
 
-		Write-Log 'ADServiceAccount -Name $MSAName.' -Level 'INFO'
+		Write-Log "ADServiceAccount -Name $MSAName." -Level 'INFO'
 		try {
 
-			New-ADServiceAccount -Name $MSAName -RestrictToSingleComputer -Enabled $true -Description "MSA account for ADAssessment on $ServerName"
+			New-ADServiceAccount -Name $MSANameIdentity -DisplayName $MSAName	-RestrictToSingleComputer -Enabled $true -Description "MSA account for ADAssessment on $ServerName"
 			Write-Log "MSA account $MSAName created successfully." -Level 'INFO'
 
+			Write-Log "Adding MSA account $MSAName local server." -Level 'INFO'
 			$Identity = Get-ADComputer -Identity $Servername
-			Add-ADComputerServiceAccount -Identity $identity -ServiceAccount $MSANameIdentity
-			Write-Log "Adding Host $Servername to MSA account $MSAName." -Level 'INFO'
+			try {
+				Add-ADComputerServiceAccount -Identity $identity -ServiceAccount $MSANameIdentity
+				Write-Log "Added Host $Servername to MSA account $MSAName." -Level 'INFO'
+			} catch {
+				Write-Log "Failed to add Host $Servername to MSA account: $($_.Exception.Message)" -Level 'ERROR'
+				exit 8
+			}
 
 
 		} catch {
@@ -411,8 +460,8 @@ process {
 		if (Get-ADServiceAccount -Identity $MSAName) {
 			Write-Log "MSA account $MSAName exists in Active Directory." -Level 'INFO'
 		} else {
-			Write-Log "MSA account $MSAName does not exist in Active Directory." -Level 'ERROR'
-			exit 8
+			Write-Log "Failed to locate the MSA account $MSAName in Active Directory." -Level 'ERROR'
+			exit 9
 		}
 		<#
 		Active Directory On-Demand Assessment
@@ -424,16 +473,16 @@ process {
 				Add-ADGroupMember -Identity 'Enterprise Admins' -Members $MSANameIdentity
 				Write-Log 'MSA account added successfully.' -Level 'INFO'
 			} catch {
-				Write-Log "Unable to add MSA account to 'Enterprise Admins': $($_.Exception.Message)" -Level 'ERROR'
-				exit 9
+				Write-Log "Failed to add MSA account from 'Enterprise Admins': $($_.Exception.Message)" -Level 'ERROR'
+				#exit 54
 			}
 			Write-Log "Add MSA account $MSAName to 'Domain Admins' group." -Level 'INFO'
 			try {
 				Add-ADGroupMember -Identity 'Domain Admins' -Members $MSANameIdentity
 				Write-Log 'MSA account added successfully.' -Level 'INFO'
 			} catch {
-				Write-Log "Unable to add MSA account to 'Domain Admins': $($_.Exception.Message)" -Level 'ERROR'
-				exit 10
+				Write-Log "Failed to add MSA account from 'Domain Admins': $($_.Exception.Message)" -Level 'ERROR'
+				#exit 55
 			}
 		}
 		<#
@@ -446,11 +495,37 @@ process {
 				Add-ADGroupMember -Identity 'Organization Management' -Members $MSANameIdentity
 				Write-Log 'MSA account added successfully.' -Level 'INFO'
 			} catch {
-				Write-Log "Unable to add MSA account to 'Exchange Organization Management': $($_.Exception.Message)" -Level 'ERROR'
-				exit 11
+				Write-Log "Failed to add MSA account from 'Exchange Organization Management': $($_.Exception.Message)" -Level 'ERROR'
+				#exit 56
 			}
 
 		}
+		<#
+		Add to local Admin group
+		#>
+		# Add a user to the local Administrators group
+		# Works for local accounts and Microsoft accounts
+		# Requires running PowerShell as Administrator
+		# Pause
+		Write-Log "Adding user '$MSAName' to the local Administrators group." -Level 'INFO'
+		try {
+
+			# Check if the user exists locally
+			$userExists = Get-ADServiceAccount -Identity $MSANameIdentity -ErrorAction SilentlyContinue
+			if (-not $userExists ) {
+				throw "User '$MSAName' does not exist. Check the name."
+			}
+
+			# Add the user to the Administrators group
+			Add-LocalGroupMember -Group 'Administrators' -Member "$DomainName\$MSANameIdentity" -ErrorAction Stop
+
+			Write-Log "User '$MSAName' has been added to the local Administrators group." -Level 'INFO'
+		} catch {
+			Write-Log "$($_.Exception.Message)" -Level 'ERROR'
+			exit 16
+		}
+
+
 		<#
 		Logon as a batch job Right
 		#>
@@ -461,8 +536,8 @@ process {
 			Write-Log 'Logon as a batch Job Right Added' -Level 'INFO'
 		} catch {
 
-			Write-Log "Unable to add Logon as a batch Job right: $($_.Exception.Message)" -Level 'ERROR'
-			exit 14
+			Write-Log "Failed to add Logon as a batch Job right: $($_.Exception.Message)" -Level 'ERROR'
+			exit 15
 		}
 
 		Write-Log "Install MSA account on $ServerName." -Level 'INFO'
@@ -471,15 +546,15 @@ process {
 			Write-Log "MSA account installed successfully on $ServerName." -Level 'INFO'
 		} catch {
 			Write-Log "Failed to install MSA account: $($_.Exception.Message)" -Level 'ERROR'
-			exit 12
+			exit 13
 		}
 
-
+		Write-Log 'Testing MSA account' -Level 'INFO'
 		if (Test-ADServiceAccount -Identity $MSANameIdentity) {
 			Write-Log "MSA account $MSAName is valid." -Level 'INFO'
 		} else {
 			Write-Log "MSA account $MSAName is not valid." -Level 'ERROR'
-			exit 13
+			exit 14
 		}
 
 		#-----------
@@ -495,6 +570,8 @@ end {
 
 
 	Write-Log 'Script completed successfully.' -Level 'INFO'
+	Write-Log '------------------------------------' -Level 'INFO'
+	Write-Host "Log file created at: $LogFile" -ForegroundColor Green
 
 }
 #endregion End
