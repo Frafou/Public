@@ -353,7 +353,7 @@ process {
 				#exit 57
 			}
 		} else {
-			Write-Log "Failed to locate '$MSAName' in the local Administrators Group. Check the name." -Level 'ERROR'
+			Write-Log "Failed to locate the MSA '$MSAName' in the local Administrators Group. Check the name." -Level 'ERROR'
 			#exit 17
 		}
 
@@ -381,7 +381,7 @@ process {
 		if ( $EX_ODA) {
 			Write-Log "Removing MSA account $MSAName from the Exchange 'Organization Management' group." -Level 'INFO'
 			try {
-				Remove-ADGroupMember -Identity ''Organization Management'' -Members $MSANameIdentity -Confirm:$false
+				Remove-ADGroupMember -Identity 'Organization Management' -Members $MSANameIdentity -Confirm:$false
 				Write-Log 'MSA account removed successfully.' -Level 'INFO'
 			} catch {
 				Write-Log "Failed to remove MSA account from the Exchange 'Organization Management' group: $($_.Exception.Message)" -Level 'ERROR'
@@ -438,10 +438,10 @@ process {
 		Write-Log "ADServiceAccount -Name $MSAName." -Level 'INFO'
 		try {
 
-			New-ADServiceAccount -Name $MSANameIdentity -DisplayName $MSAName	-RestrictToSingleComputer -Enabled $true -Description "MSA account for ADAssessment on $ServerName"
+			New-ADServiceAccount -DisplayName $MSAName -Name $MSAName -RestrictToSingleComputer -Enabled $true -Description "MSA account for ODA Assessment on $ServerName"
 			Write-Log "MSA account $MSAName created successfully." -Level 'INFO'
 
-			Write-Log "Adding MSA account $MSAName  to local server." -Level 'INFO'
+			Write-Log "Adding MSA account '$MSAName' to local server." -Level 'INFO'
 			$Identity = Get-ADComputer -Identity $Servername
 			try {
 				Add-ADComputerServiceAccount -Identity $identity -ServiceAccount $MSANameIdentity
@@ -490,13 +490,13 @@ process {
 		Exchange On-Demand Assessment
 		#>
 		if ($EX_ODA) {
-			Write-Log "Add MSA account $MSAName to 'Exchange Admins' group." -Level 'INFO'
+			Write-Log "Add MSA account $MSAName to the Exchange 'Organization Management' group." -Level 'INFO'
 			try {
 
 				Add-ADGroupMember -Identity 'Organization Management' -Members $MSANameIdentity
 				Write-Log 'MSA account added successfully.' -Level 'INFO'
 			} catch {
-				Write-Log "Failed to add MSA account from 'Exchange Organization Management': $($_.Exception.Message)" -Level 'ERROR'
+				Write-Log "Failed to add MSA account from the Exchange 'Organization Management' group: $($_.Exception.Message)" -Level 'ERROR'
 				#exit 56
 			}
 
