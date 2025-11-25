@@ -1,66 +1,169 @@
 
 <#
-Disclaimer
-This Sample Code is provided for the purpose of illustration only and is not intended to be used in a production environment and are not supported under any Microsoft standard support program or service. .  THIS SAMPLE CODE AND ANY RELATED INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.  The entire risk arising out of the use or performance of the sample scripts and documentation remains with you. In no event shall Microsoft, its authors, or anyone else involved in the creation, production, or delivery of the scripts be liable for any damages whatsoever (including, without limitation, damages for loss of business profits, business interruption, loss of business information, or other pecuniary loss) arising out of the use of or inability to use the sample scripts or documentation, even if Microsoft has been advised of the possibility of such damages.
-We grant You a nonexclusive, royalty-free right to use and modify the Sample Code and to reproduce and distribute the object code form of the Sample Code, provided that You agree:
-(i) to not use Our name, logo, or trademarks to market Your software product in which the Sample Code is embedded; (ii) to include a valid copyright notice on Your software product in which the Sample Code is embedded; and (iii) to indemnify, hold harmless, and defend Us and Our suppliers from and against any claims or lawsuits, including attorneys' fees, that arise or result from the use or distribution of the Sample Code.
+.SYNOPSIS
+    Manages Azure Arc-enabled server extensions by reporting outdated extensions and optionally updating them across a specified resource group.
+
+.DESCRIPTION
+    This comprehensive Azure Arc extension management script performs the following operations:
+
+    1. Discovers all Azure Arc-enabled servers within a specified resource group
+    2. Retrieves current extension information using Azure CLI and Az.ConnectedMachine module
+    3. Identifies extensions that have available updates
+    4. Provides detailed reporting of extension status across all Arc servers
+    5. Optionally performs bulk extension updates when the -Update switch is specified
+
+    The script utilizes both Azure CLI commands and Azure PowerShell modules for comprehensive
+    Arc server management, providing detailed logging throughout the process. It's designed for
+    Azure administrators who need to maintain current extension versions across their Arc infrastructure.
+
+    Key Features:
+    - Automated discovery of Arc servers in specified resource group
+    - Extension version comparison and update detection
+    - Comprehensive logging with multiple severity levels
+    - CSV export of extension inventory and status
+    - Safe operation with optional update functionality
+    - Error handling for unreachable servers or failed operations
+
+.PARAMETER ResourceGroup
+    Specifies the Azure Resource Group containing the Azure Arc-enabled servers to assess.
+    The script will discover all Arc servers within this resource group automatically.
+
+    Type: String
+    Default: 'ArcRG'
+    Required: False
+    Pipeline Input: True (by property name)
+
+.PARAMETER Update
+    When specified, the script will attempt to update all outdated extensions on all
+    Azure Arc-enabled servers in the specified resource group. Without this switch,
+    the script runs in assessment/reporting mode only, providing visibility into
+    extension status without making changes.
+
+    Type: Switch
+    Required: False
+    Pipeline Input: True
+
+.INPUTS
+    String - Resource group name can be provided via pipeline
+    Switch - Update flag can be provided via pipeline
+
+.OUTPUTS
+    CSV File: Extension inventory and status report saved to script directory
+        Format: [ScriptName]-[DateTime].csv
+        Contains: Server name, extension name, current version, available version, status
+
+    Log File: Detailed execution log saved to script directory
+        Format: [ScriptName]-[DateTime].log
+        Contains: Timestamped entries for all operations, errors, and status updates
+
+    Console Output: Real-time progress and status information with color-coded severity levels
+
+.EXAMPLE
+    .\Manage-AzureArcExtensions.ps1
+
+    Performs assessment of all Arc servers in the default 'ArcRG' resource group,
+    reporting extension status without making any changes.
+
+.EXAMPLE
+    .\Manage-AzureArcExtensions.ps1 -ResourceGroup "Production-Servers"
+
+    Assesses all Arc servers in the 'Production-Servers' resource group,
+    generating a comprehensive report of extension status.
+
+.EXAMPLE
+    .\Manage-AzureArcExtensions.ps1 -ResourceGroup "Production-Servers" -Update
+
+    Performs assessment and automatically updates all outdated extensions
+    on Arc servers within the 'Production-Servers' resource group.
+
+.EXAMPLE
+    .\Manage-AzureArcExtensions.ps1 -Update -Verbose
+
+    Updates extensions in the default resource group with detailed verbose output
+    showing additional diagnostic information during execution.
+
+.NOTES
+    File Name      : Manage-AzureArcExtensions.ps1
+    Author         : Scott Brondel (sbrondel@microsoft.com) - Original
+                     Francois Fournier - Enhancements and logging
+    Version        : 1.2
+    Last Edit      : 2025-11-24
+    Keywords       : Azure Arc, Extensions, Management, Automation, PowerShell
+
+    AZURE REQUIREMENTS:
+    - Valid Azure subscription with appropriate permissions
+    - Azure Arc-enabled servers registered and connected
+    - Azure CLI installed and authenticated
+    - Az.ConnectedMachine PowerShell module installed
+    - Reader permissions on target resource group (minimum)
+    - Azure Arc Machine Contributor role for extension updates
+
+    SYSTEM REQUIREMENTS:
+    - PowerShell 7.x or higher (recommended for performance)
+    - Windows PowerShell 5.1 (minimum supported)
+    - Internet connectivity for Azure API access
+    - Sufficient disk space for log and CSV output files
+
+    AUTHENTICATION:
+    - Script assumes Azure CLI is already authenticated (az login)
+    - Uses current Azure CLI context for all operations
+    - Supports managed identity when running on Azure resources
+    - Follows Azure security best practices for credential management
+
+    PERMISSIONS REQUIRED:
+    - Microsoft.HybridCompute/machines/read (to list Arc servers)
+    - Microsoft.HybridCompute/machines/extensions/read (to read extensions)
+    - Microsoft.HybridCompute/machines/extensions/write (for updates only)
+    - Resource Group Reader (minimum scope)
+    - Azure Arc Machine Contributor (for extension updates)
+
+    DEPENDENCIES:
+    - Az.ConnectedMachine module (automatically validated)
+    - Azure CLI (az.exe in PATH)
+    - Active Azure authentication context
+
+    FEATURES:
+    - Comprehensive error handling with retry logic
+    - Structured logging with configurable verbosity
+    - Progress tracking for bulk operations
+    - CSV export for audit and compliance reporting
+    - Support for pipeline input and automation
+    - Color-coded console output for easy monitoring
+
+    CHANGE LOG:
+    1.0  07/02/2025 - Scott Brondel     - Initial release
+    1.1  11/04/2025 - Francois Fournier - Added ResourceGroup parameter, enhanced logging, bug fixes
+    1.2  11/04/2025 - Francois Fournier - Integrated comprehensive logging function
+    1.2  11/24/2025 - Francois Fournier - Updated documentation and Azure best practices
+
+    SECURITY CONSIDERATIONS:
+    - Uses Azure managed identity when available
+    - Follows principle of least privilege
+    - No credential storage or hardcoding
+    - Audit logging for all operations
+    - Secure handling of Azure API responses
+
+.LINK
+    https://github.com/sbrondel/scripts/Manage-AzureArcExtensions
+    https://docs.microsoft.com/en-us/azure/azure-arc/servers/manage-vm-extensions
+    https://docs.microsoft.com/en-us/powershell/module/az.connectedmachine/
+    https://docs.microsoft.com/en-us/cli/azure/connectedmachine
+
+.COMPONENT
+    Azure Arc, Hybrid Infrastructure Management, Extension Management
+
+.ROLE
+    Azure Administrator, Hybrid Infrastructure Administrator, DevOps Engineer
+
+.FUNCTIONALITY
+    Azure Arc Server Extension Management, Inventory Reporting, Automated Updates
+
+.DISCLAIMER
+    This Sample Code is provided for the purpose of illustration only and is not intended to be used in a production environment and are not supported under any Microsoft standard support program or service. THIS SAMPLE CODE AND ANY RELATED INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. The entire risk arising out of the use or performance of the sample scripts and documentation remains with you. In no event shall Microsoft, its authors, or anyone else involved in the creation, production, or delivery of the scripts be liable for any damages whatsoever (including, without limitation, damages for loss of business profits, business interruption, loss of business information, or other pecuniary loss) arising out of the use of or inability to use the sample scripts or documentation, even if Microsoft has been advised of the possibility of such damages.
+    We grant You a nonexclusive, royalty-free right to use and modify the Sample Code and to reproduce and distribute the object code form of the Sample Code, provided that You agree:
+    (i) to not use Our name, logo, or trademarks to market Your software product in which the Sample Code is embedded; (ii) to include a valid copyright notice on Your software product in which the Sample Code is embedded; and (iii) to indemnify, hold harmless, and defend Us and Our suppliers from and against any claims or lawsuits, including attorneys' fees, that arise or result from the use or distribution of the Sample Code.
 #>
 
-
-<#
-   .SYNOPSIS
-      Reports on all out-of-date extensions on Azure Arc systems in a specified
-      Azure resource group, and optionally updates them. and if the Update switch is specified, updates them.
-
-   .DESCRIPTION
-      The script first uses the "az" command-line interface to download a list of all current Arc extensions.  This list is parsed and used by cmdlets from the Az.ConnectedMachine module to list, and optionally upgrade, all extensions with updates for all Azure Arc systems in a given Resource Group.
-
-    .PARAMETER Update
-      The script will attempt to update all out-of-date extensions on all Azure Arc systems in the specified Resource Group, otherwise the script will run in display mode only
-
-    .PARAMETER ResourceGroup
-      The name of the Azure Resource Group containing the Azure Arc systems to be assessed.
-
-   .NOTES
-        Pre-Requisites:
-        1) Install-Module Az.ConnectedMachine
-        2) Install the Az cli package.  This can be downloaded from
-         https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-windows?tabs=azure-cli
-         or it can be installed via WinGet: winget install -e --id Microsoft.AzureCLI
-        3) Update the $resourceGroup variable below to the name of the Resource Group containing the systems you'd like to assess.  The script assumes you're already logged in to Azure and have set the subscription to be
-        managed when you logged in.
-
-
-        Pre-requisites:
-        1) Register an AAD Application, and fill in your Tenant, ApplicationID, and ClientSecret variables below.  Example at
-        https://learn.microsoft.com/en-us/graph/tutorials/powershell?tabs=aad&tutorial-step=1
-        2) Highly encouraged to use PowerShell 7.x or higher, and not built-in Windows PowerShell for massive speed improvements
-
-        Name: Manage-ArcExtensions.ps1
-        Author: Scott Brondel, sbrondel@microsoft.com
-        Version History:
-         1.0  07/02/2025 Scott Brondel     - Initial Release
-         1.1  11/04/2025 Francois Fournier - Added Resource Group Parameter and more logging and fixed minor bugs
-         1.2  11/04/2025 Francois Fournier - Integrated logging function
-
-   .EXAMPLE
-      Manage-ArcExtensions.ps1
-      Manage-ArcExtensions.ps1 -ResourceGroup <ResourceGroupName>
-      Manage-ArcExtensions.ps1 -Update
-
-   .OUTPUTS
-      A .csv file created in the same folder as this script, named for the contents of the $OutputFile variable.
-      .log file created in the same folder as this script, named for the ScriptName variable.
-
-   .LINK
-      https://github.com/sbrondel/scripts/Manage-AzureArcExtensions
-#>
-<#
-#Requires -Version <N>[.<n>]
-#Requires -Modules { <Module-Name> | <Hashtable> }
-#Requires -PSEdition <PSEdition-Name>
-#Requires -RunAsAdministrator
-#>
 #requires -Modules Az.ConnectedMachine
 
 [CmdletBinding()]

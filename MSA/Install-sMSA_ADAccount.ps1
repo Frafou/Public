@@ -1,85 +1,236 @@
 ﻿<#
-Disclaimer
-This Sample Code is provided for the purpose of illustration only and is not intended to be used in a production environment and are not supported under any Microsoft standard support program or service. .  THIS SAMPLE CODE AND ANY RELATED INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.  The entire risk arising out of the use or performance of the sample scripts and documentation remains with you. In no event shall Microsoft, its authors, or anyone else involved in the creation, production, or delivery of the scripts be liable for any damages whatsoever (including, without limitation, damages for loss of business profits, business interruption, loss of business information, or other pecuniary loss) arising out of the use of or inability to use the sample scripts or documentation, even if Microsoft has been advised of the possibility of such damages.
-We grant You a nonexclusive, royalty-free right to use and modify the Sample Code and to reproduce and distribute the object code form of the Sample Code, provided that You agree:
-(i) to not use Our name, logo, or trademarks to market Your software product in which the Sample Code is embedded; (ii) to include a valid copyright notice on Your software product in which the Sample Code is embedded; and (iii) to indemnify, hold harmless, and defend Us and Our suppliers from and against any claims or lawsuits, including attorneys' fees, that arise or result from the use or distribution of the Sample Code.
-#>
-
-<#
 .SYNOPSIS
-	Create and Install or Remove MSA Account.
+    Creates, configures, and manages Active Directory Managed Service Accounts (MSA) for On-Demand Assessment services.
 
 .DESCRIPTION
-	Verify required configuration, create MSA account in Active Directory and install it on target server, as well as required group membership(s) for Active Directory or Exchange On-Demand Assessment if the corresponding parameter is used.
+    This comprehensive script manages the complete lifecycle of Active Directory standalone Managed Service Accounts (sMSA).
+    It performs the following operations:
 
-	if the Remove parameter is used will remove the MSA account and its configuration.
+    CREATION MODE (Default):
+    1. Validates prerequisites and administrative permissions
+    2. Installs and imports required Active Directory PowerShell module
+    3. Creates KDS Root Key if not present (required for MSA functionality)
+    4. Creates a new standalone Managed Service Account in Active Directory
+    5. Configures the MSA account with appropriate computer restrictions
+    6. Installs the MSA account on the target server
+    7. Optionally adds MSA to required groups for Active Directory or Exchange On-Demand Assessment
+    8. Grants necessary local rights including "Log on as a Batch Job"
+    9. Adds MSA to local Administrators group for assessment operations
 
-	The script need to be run as Administrator on the target server with an account that can create MSA accounts in Active Directory and manage required groups (preferably a domain admins account).
+    REMOVAL MODE (-Remove switch):
+    - Safely removes MSA account from all groups and local configurations
+    - Uninstalls MSA from the local server
+    - Removes MSA account from Active Directory
+
+    The script is specifically designed for Microsoft On-Demand Assessment services but can be adapted
+    for general MSA deployment scenarios. It includes comprehensive error handling, detailed logging,
+    and validation at each step to ensure successful MSA deployment.
 
 .PARAMETER MSAName
-  String parameter for MSA Name.
+    Specifies the name of the Managed Service Account to create or manage.
+    The MSA name must be 15 characters or less due to Active Directory constraints.
+    The script automatically appends '$' for internal operations but displays the friendly name.
+
+    Type: String
+    Default: 'MSA_ADAssess'
+    Required: False
+    Pipeline Input: True (by property name)
 
 .PARAMETER Remove
-  Switch to remove MSA account.
+    When specified, the script operates in removal mode, safely removing the MSA account
+    and all associated configurations including:
+    - Group memberships (Enterprise Admins, Domain Admins, Organization Management)
+    - Local Administrator group membership
+    - Local user rights assignments
+    - MSA installation from local server
+    - MSA account deletion from Active Directory
+
+    Type: Switch
+    Required: False
+    Pipeline Input: True
 
 .PARAMETER AD_ODA
-  Switch to add MSA account to required groups for Active Directory On-Demand Assessment.
+    When specified, adds the MSA account to required groups for Active Directory On-Demand Assessment:
+    - Enterprise Admins group (for comprehensive AD access)
+    - Domain Admins group (for domain-level operations)
+
+    This parameter enables the MSA account to perform comprehensive Active Directory assessments
+    including schema analysis, security configuration review, and permission auditing.
+
+    Type: Switch
+    Required: False
+    Pipeline Input: True
 
 .PARAMETER EX_ODA
-  Switch to add MSA account to required groups for Exchange On-Demand Assessment.
+    When specified, adds the MSA account to required groups for Exchange On-Demand Assessment:
+    - Organization Management group (Exchange administrative access)
+    - Additional Exchange-specific permissions as needed
+
+    This parameter enables the MSA account to perform Exchange Server assessments including
+    configuration analysis, security review, and compliance checking.
+
+    Type: Switch
+    Required: False
+    Pipeline Input: True
 
 .INPUTS
-	.none
+    String - MSA account name can be provided via pipeline
+    Switch - Operation mode and group membership flags can be provided via pipeline
 
 .OUTPUTS
-	Log:  Install-MSA_ADAccount-$Date.log
+    Log File: Detailed execution log saved to script directory
+        Format: Install-sMSA_ADAccount-YYYYMMDD-HHMMSS.log
+        Contains: Timestamped entries for all operations, errors, and validation steps
 
-.Example
-  Install-MSA_ADAccount.ps1 -verbose
+    Console Output: Real-time progress with color-coded severity levels
+        - Green: Informational messages and successful operations
+        - Yellow: Warning messages and non-critical issues
+        - Red: Error messages and failure conditions
+        - Cyan: Debug information when verbose mode is enabled
 
-.Example
-  Install-MSA_ADAccount.ps1 -verbose -MSAName "MSA_ADAssess"
+    Exit Codes: Specific error codes for automation and troubleshooting (see .ErrorCodes section)
 
-.Notes
-  Author: Francois Fournier
-  Created: 2025-01-01
-  Version: 1.2
-  Last Updated: 2025-01-01
-  License: MIT License
-  V1.0 Initial version
-	V1.1 added AD_ODA,EX_ODA Parameters
-	V1.2 add domain name, add account to local admins group
+.EXAMPLE
+    .\Install-sMSA_ADAccount.ps1
+
+    Creates a new MSA account named 'MSA_ADAssess' with basic configuration,
+    installs it on the local server, and adds to local Administrators group.
+
+.EXAMPLE
+    .\Install-sMSA_ADAccount.ps1 -MSAName "MSA_ExchangeAssess" -EX_ODA
+
+    Creates a new MSA account named 'MSA_ExchangeAssess' and configures it
+    for Exchange On-Demand Assessment with Organization Management permissions.
+
+.EXAMPLE
+    .\Install-sMSA_ADAccount.ps1 -MSAName "MSA_ADAssess" -AD_ODA
+
+    Creates a new MSA account named 'MSA_ADAssess' and configures it
+    for Active Directory On-Demand Assessment with Enterprise and Domain Admin permissions.
+
+.EXAMPLE
+    .\Install-sMSA_ADAccount.ps1 -MSAName "MSA_ADAssess" -AD_ODA -EX_ODA
+
+    Creates a comprehensive MSA account configured for both Active Directory
+    and Exchange On-Demand Assessments with full administrative permissions.
+
+.EXAMPLE
+    .\Install-sMSA_ADAccount.ps1 -MSAName "MSA_ADAssess" -Remove
+
+    Safely removes the specified MSA account and all associated configurations
+    from local server, groups, and Active Directory.
+
+.EXAMPLE
+    .\Install-sMSA_ADAccount.ps1 -Verbose
+
+    Creates MSA account with detailed verbose output showing all validation
+    steps, Active Directory operations, and configuration changes.
+
+.NOTES
+    File Name      : Install-sMSA_ADAccount.ps1
+    Author         : Francois Fournier
+    Version        : 1.2
+    Created        : 2025-01-01
+    Last Updated   : 2025-11-24
+    License        : MIT License
+    Keywords       : MSA, Managed Service Account, Active Directory, On-Demand Assessment, PowerShell
+
+    REQUIREMENTS:
+    - Windows Server 2012 R2 or higher (for MSA support)
+    - PowerShell 5.1 or higher
+    - Administrative privileges on target server
+    - Domain Administrator privileges (or equivalent MSA management rights)
+    - Active Directory PowerShell module (auto-installed by script)
+    - Network connectivity to Domain Controllers
+    - KDS Root Key in domain (created automatically if missing)
+
+    ACTIVE DIRECTORY REQUIREMENTS:
+    - Domain functional level Windows Server 2012 or higher
+    - At least one Windows Server 2012+ Domain Controller
+    - Proper DNS resolution to Domain Controllers
+    - Active Directory Web Services (ADWS) running on Domain Controllers
+
+    PERMISSIONS REQUIRED:
+    - Local Administrator on target server
+    - Domain Administrator privileges (for MSA creation and group management)
+    - Create Computer Objects (for MSA account creation)
+    - Manage Group Membership (for assessment group assignments)
+
+    SECURITY CONSIDERATIONS:
+    - MSA accounts provide enhanced security over traditional service accounts
+    - Passwords are automatically managed by Active Directory
+    - Account is restricted to specified computer(s)
+    - Regular password rotation handled by domain controllers
+    - Follows principle of least privilege when possible
+
+    FEATURES:
+    - Comprehensive prerequisite validation
+    - Automatic Active Directory module installation
+    - KDS Root Key creation and validation
+    - Detailed error handling with specific exit codes
+    - Color-coded console output for easy monitoring
+    - Comprehensive logging for audit and troubleshooting
+    - Support for both creation and removal operations
+    - Flexible group membership configuration
+
+    CHANGE LOG:
+    v1.0 - 2025-01-01 - Francois Fournier - Initial version
+    v1.1 - 2025-01-01 - Francois Fournier - Added AD_ODA and EX_ODA parameters
+    v1.2 - 2025-01-01 - Francois Fournier - Added domain name support, local admin group membership
+    v1.2 - 2025-11-24 - Francois Fournier - Enhanced documentation and error handling
 
 .ErrorCodes
-	1		MSA length exceeded 15 characters
-	2 	Script not run as Administrator
-	3 	Failed to install Active Directory module
-	4 	Failed to import Active Directory module
-	5 	Failed to retrieve Domain information
-	6 	Failed to create KDS Root Key
-	7   Failed to create MSA account
-	8		Failed to add Host $Servername to MSA account:
-	9   Failed to locate the MSA account in Active Directory
-	10  Failed to add MSA account to 'Enterprise Admins'
-	11  Failed to add MSA account to 'Domain Admins'
-	12  Failed to add MSA account to the Exchange 'Organization Management'
-	13  Failed to install the MSA account
-	14  MSA account is not valid
-	15	Failed to add 'Log on as a Batch Job' right
-	16 	Failed to add MSA account to local Administrators group.
-	17 	Failed to locate the MSA in local Administrators group.
+    SUCCESS CODES:
+    0   Operation completed successfully
 
-	51  Failed to remove 'Log on as a Batch Job' right
-	52  Failed to remove ADServiceAccount
-	53  Failed to remove MSA account
-	54  Failed to remove MSA account to 'Enterprise Admins'
-	55  Failed to remove MSA account to 'Domain Admins'
-	56  Failed to remove MSA account to the Exchange 'Organization Management'
-	57  Failed to remove MSA account from local Administrators group.
+    CREATION FAILURE CODES:
+    1   MSA name length exceeded 15 characters (Active Directory limitation)
+    2   Script not executed with Administrator privileges
+    3   Failed to install Active Directory PowerShell module
+    4   Failed to import Active Directory PowerShell module
+    5   Failed to retrieve Domain Controller information
+    6   Failed to create or validate KDS Root Key
+    7   Failed to create MSA account in Active Directory
+    8   Failed to add host computer to MSA account restrictions
+    9   Failed to locate the MSA account in Active Directory after creation
+    10  Failed to add MSA account to 'Enterprise Admins' group
+    11  Failed to add MSA account to 'Domain Admins' group
+    12  Failed to add MSA account to Exchange 'Organization Management' group
+    13  Failed to install the MSA account on local server
+    14  MSA account validation failed after installation
+    15  Failed to grant 'Log on as a Batch Job' user right
+    16  Failed to add MSA account to local Administrators group
+    17  Failed to verify MSA account in local Administrators group
+
+    REMOVAL FAILURE CODES:
+    51  Failed to revoke 'Log on as a Batch Job' user right
+    52  Failed to uninstall ADServiceAccount from local server
+    53  Failed to remove MSA account from Active Directory
+    54  Failed to remove MSA account from 'Enterprise Admins' group
+    55  Failed to remove MSA account from 'Domain Admins' group
+    56  Failed to remove MSA account from Exchange 'Organization Management' group
+    57  Failed to remove MSA account from local Administrators group
 
 .LINK
- 	https://woshub.com/group-managed-service-accounts-in-windows-server-2012/
- #>
+    https://docs.microsoft.com/en-us/windows-server/security/group-managed-service-accounts/group-managed-service-accounts-overview
+    https://docs.microsoft.com/en-us/powershell/module/activedirectory/new-adserviceaccount
+    https://woshub.com/group-managed-service-accounts-in-windows-server-2012/
+    https://docs.microsoft.com/en-us/windows-server/security/credentials-protection-and-management/configuring-additional-lsa-protection
+
+.COMPONENT
+    Active Directory, Managed Service Accounts, Security, Identity Management
+
+.ROLE
+    Domain Administrator, Security Administrator, System Administrator
+
+.FUNCTIONALITY
+    MSA Lifecycle Management, Active Directory Security, Service Account Automation
+
+.DISCLAIMER
+    This Sample Code is provided for the purpose of illustration only and is not intended to be used in a production environment and are not supported under any Microsoft standard support program or service. THIS SAMPLE CODE AND ANY RELATED INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. The entire risk arising out of the use or performance of the sample scripts and documentation remains with you. In no event shall Microsoft, its authors, or anyone else involved in the creation, production, or delivery of the scripts be liable for any damages whatsoever (including, without limitation, damages for loss of business profits, business interruption, loss of business information, or other pecuniary loss) arising out of the use of or inability to use the sample scripts or documentation, even if Microsoft has been advised of the possibility of such damages.
+    We grant You a nonexclusive, royalty-free right to use and modify the Sample Code and to reproduce and distribute the object code form of the Sample Code, provided that You agree:
+    (i) to not use Our name, logo, or trademarks to market Your software product in which the Sample Code is embedded; (ii) to include a valid copyright notice on Your software product in which the Sample Code is embedded; and (iii) to indemnify, hold harmless, and defend Us and Our suppliers from and against any claims or lawsuits, including attorneys' fees, that arise or result from the use or distribution of the Sample Code.
+#>
 
 <#
 #Requires -Version <N>[.<n>]

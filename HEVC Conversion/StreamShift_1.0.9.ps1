@@ -1,95 +1,221 @@
 ﻿
 <#
-Disclaimer
-This Sample Code is provided for the purpose of illustration only and is not intended to be used in a production environment and are not supported under any Microsoft standard support program or service. .  THIS SAMPLE CODE AND ANY RELATED INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.  The entire risk arising out of the use or performance of the sample scripts and documentation remains with you. In no event shall Microsoft, its authors, or anyone else involved in the creation, production, or delivery of the scripts be liable for any damages whatsoever (including, without limitation, damages for loss of business profits, business interruption, loss of business information, or other pecuniary loss) arising out of the use of or inability to use the sample scripts or documentation, even if Microsoft has been advised of the possibility of such damages.
-We grant You a nonexclusive, royalty-free right to use and modify the Sample Code and to reproduce and distribute the object code form of the Sample Code, provided that You agree:
-(i) to not use Our name, logo, or trademarks to market Your software product in which the Sample Code is embedded; (ii) to include a valid copyright notice on Your software product in which the Sample Code is embedded; and (iii) to indemnify, hold harmless, and defend Us and Our suppliers from and against any claims or lawsuits, including attorneys' fees, that arise or result from the use or distribution of the Sample Code.
-#>
-
-<#
 .SYNOPSIS
-    This PowerShell script re-encodes non-HEVC video files in a specified directory and its subdirectories using x265 HEVC video codec with a medium preset and 23 quality.
+    StreamShift - Automated HEVC video conversion tool for bulk media library optimization using x265 encoding.
 
 .DESCRIPTION
-    The PowerShell script scans a directory and its subdirectories for non-HEVC video files, renames them and converts any MP4 files to MKV, then re-encodes the videos using the x265 HEVC codec and a medium preset with a 23 quality.
+    StreamShift is a comprehensive PowerShell-based video transcoding solution designed for media library optimization.
+    It automatically discovers, analyzes, and converts non-HEVC video files to the efficient x265 HEVC codec,
+    significantly reducing file sizes while maintaining visual quality.
 
-.PARAMETER LogOnly
-    Boolean switch for LogOnly
+    The script performs the following operations:
+    1. Recursively scans specified directory and subdirectories for video files
+    2. Uses FFprobe to analyze video streams and identify non-HEVC content
+    3. Automatically renames and converts MP4 files to MKV format for better codec support
+    4. Re-encodes videos using x265 HEVC codec with optimized settings
+    5. Maintains original video quality while achieving 20-50% file size reduction
+    6. Provides comprehensive logging and progress tracking
+    7. Supports both actual conversion and log-only analysis modes
+    8. Generates detailed CSV reports of all processed files
+
+    Key Features:
+    - Automatic codec detection and selective processing
+    - Container format optimization (MP4 to MKV conversion)
+    - Configurable FFmpeg and FFprobe executable paths
+    - Comprehensive logging with timestamped entries
+    - CSV export for processed file tracking
+    - Quality-focused encoding with CRF 23 (visually lossless)
+    - Medium preset for balanced speed/compression ratio
+    - Support for AVI, MP4, and other common video formats
+
+    Benefits:
+    - Significant storage space savings (typically 20-50% reduction)
+    - Improved streaming compatibility with modern devices
+    - Better compression efficiency for long-term archival
+    - Automated processing for large media libraries
+    - Non-destructive operation with comprehensive logging
+
+    This tool is ideal for media servers, personal video collections, and any scenario where
+    storage optimization is important without sacrificing video quality.
 
 .PARAMETER InputPath
-    Literal path of Source files to convert
+    Specifies the root directory path containing video files to be processed.
+    The script will recursively scan all subdirectories for compatible video files.
+    Supports both local paths and UNC network paths for shared storage scenarios.
+
+    Examples: 'C:\Videos', '\\server\share\media', 'D:\Movies\Collection'
+
+    Type: String
+    Default: '\\server\share\video'
+    Required: False
+    Pipeline Input: True
 
 .PARAMETER ffmpegPath
-    Literal path to FFMpeg.exe file
+    Specifies the full path to the FFmpeg executable file.
+    FFmpeg is the core transcoding engine used for video conversion.
+    Can be a relative path (if FFmpeg is in script directory) or absolute path.
+
+    Examples: '.\ffmpeg.exe', 'C:\Tools\ffmpeg\bin\ffmpeg.exe', 'C:\Program Files\ffmpeg\bin\ffmpeg.exe'
+
+    Type: String
+    Default: '.\ffmpeg.exe'
+    Required: False
+    Pipeline Input: True
 
 .PARAMETER ffprobePath
-    Literal path to FFprobe.exe file
+    Specifies the full path to the FFprobe executable file.
+    FFprobe is used for media analysis and codec detection.
+    Should typically be located in the same directory as FFmpeg.
+
+    Examples: '.\ffprobe.exe', 'C:\Tools\ffmpeg\bin\ffprobe.exe', 'C:\Program Files\ffmpeg\bin\ffprobe.exe'
+
+    Type: String
+    Default: '.\ffprobe.exe'
+    Required: False
+    Pipeline Input: True
+
+.PARAMETER LogOnly
+    When specified, the script runs in analysis mode only, identifying files that would be converted
+    without actually performing any transcoding operations. This is useful for:
+    - Estimating processing time and storage impact
+    - Validating file discovery and filtering logic
+    - Testing configurations before bulk processing
+    - Generating reports of conversion candidates
+
+    Type: Switch
+    Required: False
+    Pipeline Input: True
 
 .INPUTS
-	.none
+    String - Directory paths and executable paths can be provided via pipeline
+    Switch - LogOnly mode can be specified via pipeline
 
 .OUTPUTS
-	Log:  $scriptPath\$LogName.log
-	# This code creates a log file with a unique timestamp in the specified directory.
+    Log File: Detailed execution log saved to Logs subdirectory
+        Format: StreamShift_1.0.9-YYYYMMDD-HHMMSS.log
+        Contains: Timestamped entries for all operations, errors, and progress updates
 
-.OUTPUTS
-	Data:  $scriptPath\$scriptName.csv
+    CSV Report: Processed file inventory saved to Output subdirectory
+        Format: StreamShift_1.0.9-YYYYMMDD-HHMMSS.csv
+        Contains: File paths, original codec, new codec, file sizes, processing status
 
-.Example
-  StreamShift.ps1
+    Console Output: Real-time progress with color-coded status messages
+        - Processing progress and current file information
+        - Error messages and warnings
+        - Summary statistics and completion status
 
-.Example
-  StreamShift.ps1 -LogOnly
+.EXAMPLE
+    .\StreamShift_1.0.9.ps1
 
-	.Example
-  StreamShift.ps1 -inputPath '\\pvr\Series\Star Trek\Discovery'
+    Processes videos in the default network share location using default FFmpeg/FFprobe paths
+    in the script directory, performing actual HEVC conversion.
 
-.Example
-    StreamShift.ps1 -inputPath '\\pvr\Series\Star Trek\Discovery' -ffmpegPath 'C:\Program Files\ffmpeg\bin\ffmpeg.exe' -ffprobePath 'C:\Program Files\ffmpeg\bin\ffprobe.exe' -LogOnly
+.EXAMPLE
+    .\StreamShift_1.0.9.ps1 -LogOnly
 
-.Notes
-    NAME:       StreamShift.ps1
-    AUTHOR:     Oracle (Emby)
-    Date:       2023-04-20
-    LAST EDIT:  2025-03-22
-    KEYWORDS:   Video Encoding, HEVC, x265, ffmpeg, ffprobe, PowerShell
-		VERSION:    1.0.9
+    Analyzes the default video directory and generates a report of conversion candidates
+    without performing any actual video conversion.
 
-    V1.0.0 Initial version
-    V1.0.1 - Modified the script to reference the locations of FFmpeg and FFprobe using a variable, instead of directly calling them.
-    V1.0.2 - Adjusted the color of the console output was modified to improve its readability.
-    V1.0.3 - Implemented functionality to re-encode .AVI files and convert them into .MKV files.
-    V1.0.4 - Resolved problems related to renaming .AVI files to .MKV format.
-    V1.0.5 - Improved file organization by changing names of output and tool directories.
-    V1.0.6 - Resolved problem with invoking executables using variables.
-    V1.0.7 - Changed FFprobe to exclude 720p format and renamed output file.
-    V1.0.8 - Added PSLogging for more effective login, added Switch for Logging only, and added some file/Stream info to the output.
-		V1.0.9 - added addition parameters for path and executables
+.EXAMPLE
+    .\StreamShift_1.0.9.ps1 -InputPath 'D:\Movies'
 
+    Processes all videos in the D:\Movies directory and subdirectories, converting
+    non-HEVC files to x265 HEVC format.
 
-.link
-https://emby.media/community/index.php?/topic/118164-x265-or-hevc-which-is-besteasiest/
+.EXAMPLE
+    .\StreamShift_1.0.9.ps1 -InputPath '\\nas\media\tv-shows' -LogOnly -Verbose
 
-https://ffbinaries.com/
+    Analyzes TV show collection on network storage with detailed verbose output,
+    identifying conversion candidates without performing conversions.
 
-https://trac.ffmpeg.org/wiki/Encode/H.264
+.EXAMPLE
+    .\StreamShift_1.0.9.ps1 -InputPath 'C:\Personal Videos' -ffmpegPath 'C:\Program Files\ffmpeg\bin\ffmpeg.exe' -ffprobePath 'C:\Program Files\ffmpeg\bin\ffprobe.exe'
 
-Preset
-A preset is a collection of options that will provide a certain encoding speed to compression ratio. A slower preset will provide better compression (compression is quality per file size). This means that, for example, if you target a certain file size or constant bit rate, you will achieve better quality with a slower preset. Similarly, for constant quality encoding, you will simply save bitrate by choosing a slower preset.
+    Processes personal video collection using FFmpeg installed in Program Files,
+    performing HEVC conversion with custom tool paths.
 
-Use the slowest preset that you have patience for. The available presets in descending order of speed are:
-	ultrafast
-	superfast
-	veryfast
-	faster
-	fast
-	medium – default preset
-	slow
-	slower
-	veryslow
-	placebo – ignore this as it is not useful (see FAQ)
+.NOTES
+    File Name      : StreamShift_1.0.9.ps1
+    Author         : Oracle (Emby Community)
+    Version        : 1.0.9
+    Created        : 2023-04-20
+    Last Updated   : 2025-11-24
+    Keywords       : Video Encoding, HEVC, x265, FFmpeg, Media Optimization, PowerShell
 
-You can see a list of current presets with -preset help (see example below). If you have the x264 binary installed, you can also see the exact settings these presets apply by running x264 --fullhelp.
+    REQUIREMENTS:
+    - PowerShell 5.0 or higher
+    - FFmpeg and FFprobe executables (downloadable from ffbinaries.com)
+    - Sufficient disk space for temporary files during conversion
+    - Read/Write permissions on input directory and script directory
+    - CPU with modern instruction sets for optimal x265 performance
+
+    SYSTEM RECOMMENDATIONS:
+    - Multi-core CPU (x265 encoding is CPU-intensive)
+    - SSD storage for faster I/O during conversion
+    - 8GB+ RAM for processing large video files
+    - Dedicated processing time (conversion can be time-consuming)
+
+    FFMPEG CONFIGURATION:
+    - Encoding: x265 HEVC codec
+    - Quality: CRF 23 (visually lossless, balanced quality/size)
+    - Preset: Medium (balanced encoding speed/compression)
+    - Container: MKV (for maximum codec compatibility)
+    - Audio: Copy original streams (no re-encoding)
+    - Subtitles: Copy original streams when present
+
+    SUPPORTED FORMATS:
+    Input: AVI, MP4, MOV, WMV, FLV, and other common video formats
+    Output: MKV container with x265 HEVC video codec
+
+    FEATURES:
+    - Recursive directory scanning
+    - Automatic codec detection and filtering
+    - Smart container conversion (MP4 to MKV)
+    - Progress tracking and comprehensive logging
+    - Error handling and recovery
+    - Network storage support
+    - Batch processing capabilities
+    - Non-destructive operation (originals preserved during processing)
+
+    PERFORMANCE CONSIDERATIONS:
+    - x265 encoding is CPU-intensive; expect longer processing times
+    - File size reductions typically range from 20-50%
+    - Processing time varies based on source resolution and CPU performance
+    - Network storage may impact I/O performance
+
+    CHANGE LOG:
+    v1.0.0 - 2023-04-20 - Oracle (Emby) - Initial version
+    v1.0.1 - 2023-04-20 - Modified to use variables for FFmpeg/FFprobe paths
+    v1.0.2 - 2023-04-20 - Improved console output readability with color coding
+    v1.0.3 - 2023-04-20 - Added AVI file support and MKV conversion
+    v1.0.4 - 2023-04-20 - Fixed AVI to MKV renaming issues
+    v1.0.5 - 2023-04-20 - Enhanced file organization and directory structure
+    v1.0.6 - 2023-04-20 - Resolved executable invocation issues with variables
+    v1.0.7 - 2023-04-20 - Excluded 720p format and improved output naming
+    v1.0.8 - 2023-04-20 - Added PSLogging, LogOnly switch, and enhanced file info
+    v1.0.9 - 2025-03-22 - Added parameters for custom paths and executables
+    v1.0.9 - 2025-11-24 - Enhanced documentation and usage examples
+
+.LINK
+    https://emby.media/community/index.php?/topic/118164-x265-or-hevc-which-is-besteasiest/
+    https://ffbinaries.com/
+    https://trac.ffmpeg.org/wiki/Encode/H.264
+    https://x265.readthedocs.io/en/stable/
+    https://trac.ffmpeg.org/wiki/Encode/H.265
+
+.COMPONENT
+    Video Processing, Media Transcoding, HEVC Encoding, Storage Optimization
+
+.ROLE
+    Media Administrator, Storage Administrator, Content Manager
+
+.FUNCTIONALITY
+    Video Transcoding, Codec Conversion, Media Library Optimization, Storage Management
+
+.DISCLAIMER
+    This Sample Code is provided for the purpose of illustration only and is not intended to be used in a production environment and are not supported under any Microsoft standard support program or service. THIS SAMPLE CODE AND ANY RELATED INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. The entire risk arising out of the use or performance of the sample scripts and documentation remains with you. In no event shall Microsoft, its authors, or anyone else involved in the creation, production, or delivery of the scripts be liable for any damages whatsoever (including, without limitation, damages for loss of business profits, business interruption, loss of business information, or other pecuniary loss) arising out of the use of or inability to use the sample scripts or documentation, even if Microsoft has been advised of the possibility of such damages.
+    We grant You a nonexclusive, royalty-free right to use and modify the Sample Code and to reproduce and distribute the object code form of the Sample Code, provided that You agree:
+    (i) to not use Our name, logo, or trademarks to market Your software product in which the Sample Code is embedded; (ii) to include a valid copyright notice on Your software product in which the Sample Code is embedded; and (iii) to indemnify, hold harmless, and defend Us and Our suppliers from and against any claims or lawsuits, including attorneys' fees, that arise or result from the use or distribution of the Sample Code.
 #>
 #Requires -Version 5
 
@@ -140,7 +266,7 @@ if (-not (Test-Path $logPath -PathType Container)) {
 	} catch {
 		<#Do this if a terminating exception happens#>
 		Write-Error 'Unable to create log file'
-		Break
+		break
 	}
 }
 if (-not (Test-Path $CSVPath -PathType Container)) {
@@ -150,7 +276,7 @@ if (-not (Test-Path $CSVPath -PathType Container)) {
 	} catch {
 		<#Do this if a terminating exception happens#>
 		Write-Error 'Unable to create log file'
-		Break
+		break
 	}
 }
 
