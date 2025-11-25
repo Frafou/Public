@@ -163,7 +163,7 @@ Get-Help .\ScriptName.ps1 -Parameter ParameterName
 # Install required modules (run as administrator)
 Install-Module Az.ConnectedMachine    # For Azure Arc scripts
 Install-Module ActiveDirectory        # For MSA and DNS scripts
-Install-Module PSLogging             # For enhanced logging
+Install-Module PSLogging              # For enhanced logging
 ```
 
 ### 2. External Tools

@@ -1,58 +1,322 @@
-# Manage-ArcExtensions
+# Azure Arc Extensions Management
 
-## Disclaimer
+A PowerShell solution for automated management and updating of Azure Arc server extensions across Resource Groups, providing both reporting and upgrade capabilities for hybrid cloud infrastructure.
 
-This code is provided for demonstration purposes only.
-It is intended to illustrate concepts and should not be used in production environments without proper review, testing, and validation.
-The authors and distributors of this code make no warranties regarding its functionality, security, or suitability for any specific use.
-Use at your own risk.
+## ?? Script Overview
 
-## Synopsis
+### Manage-AzureArcExtensions.ps1
 
-This script will iterate through all Azure Arc systems in a given Resource Group, and either report-on or upgrade any installed extensions where an update is available.  This works whether or not the extension supports auto-upgrade.
+**Purpose**: Comprehensive Azure Arc server extension lifecycle management
 
-Running the script without parameters is the same as running report mode - you'll receive a per-machine list of all extensions where an upgrade is available.  Running it with the -Upgrade parameter will initiate PowerShell jobs to update each extension.
+**Key Features**:
 
-Running the script without parameters is the same as running with the -CheckOnly option - you'll receive a per-machine list of all extensions where an upgrade is available.  Running it with the -Upgrade parameter will initiate PowerShell jobs to update each extension.
+- **Automated Discovery**: Scans all Azure Arc systems within specified Resource Groups
+- **Extension Inventory**: Reports on all installed extensions and their current versions
+- **Update Detection**: Identifies extensions with available updates (auto-upgrade enabled or disabled)
+- **Bulk Operations**: Parallel PowerShell jobs for efficient multi-server management
+- **Flexible Modes**: Report-only mode for assessment, upgrade mode for automated updates
+- **Enterprise Integration**: Compatible with Azure Resource Manager and PowerShell workflows
 
-Pre-Requisites:
+**Supported Operations**:
 
-## Pre-Requisites
+- Extension status reporting and inventory management
+- Version comparison and update availability detection
+- Automated extension updates with progress tracking
+- Resource Group-based bulk operations
+- Azure Arc server health and connectivity validation
 
-The script needs the Az command-line-interface installed, as well as the Az.ConnectedMachine module.
+## ?? Quick Start
 
-1) Install-Module Az.ConnectedMachine
+### Prerequisites
 
-2) Install the Az cli package.  This can be downloaded from [https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-windows?tabs=azure-cli] or it can be installed via WinGet: winget install -e --id Microsoft.AzureCLI
+- **Azure PowerShell**: Az.ConnectedMachine module installed
+- **Azure CLI**: Latest version for enhanced Azure Arc operations
+- **Authentication**: Active Azure session with appropriate permissions
+- **Permissions**: Contributor or Azure Arc Administrator role
+- **Connectivity**: Network access to Azure Arc servers and Azure APIs
+- **PowerShell**: Version 5.1 minimum (PowerShell 7+ recommended)
 
-## Usage
+### Installation
 
-You can set the -ResourceGroup parameter to the name of the Resource Group containing the systems you'd like to assess.
-Otherwise a default of 'ArcRG' is assumed
-Use the -Update parameter to permit updates otherwise the script will run in report mode only
+```powershell
+# Install required Azure PowerShell modules
+Install-Module Az.ConnectedMachine -Force
+Install-Module Az.Accounts -Force
+Install-Module Az.Resources -Force
 
-The script assumes you're already logged in to Azure (Connect-AzAccount) and have set the target subscription to be managed when you logged in.
-2) Install the Az cli package.  This can be downloaded from  [https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-windows?tabs=azure-cli]  or it can be installed via WinGet: winget install -e --id Microsoft.AzureCLI
-3) Update the $resourceGroup variable to the name of the Resource Group containing the systems you'd like to assess.  The script assumes you're already logged in to Azure and have set the subscription to be managed when you logged in.
+# Install Azure CLI (choose one method)
+# Method 1: WinGet
+winget install -e --id Microsoft.AzureCLI
 
-## Contributing
+# Method 2: Direct download
+# Download from: https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-windows
 
-Guidelines for contributing to your project.
+# Verify installation
+Get-Module Az.ConnectedMachine -ListAvailable
+az --version
+```
 
-1. Fork the repository
-2. Create a new branch (git checkout -b feature-branch)
-3. Make your changes
-4. Commit your changes (git commit -m 'Add some feature')
-5. Push to the branch (git push origin feature-branch)
-6. Open a pull request
+### Authentication Setup
 
-## License
+```powershell
+# Connect to Azure with PowerShell
+Connect-AzAccount
 
-MIT license.
+# Set target subscription
+Set-AzContext -SubscriptionId "your-subscription-id"
 
-## Contact
+# Verify Azure CLI authentication
+az login
+az account set --subscription "your-subscription-id"
 
-How to reach you for questions or feedback.
+# Confirm access to Arc resources
+Get-AzConnectedMachine -ResourceGroupName "your-rg-name"
+```
 
-Email: <GitHub@ffournier.ca>
-GitHub: Frafou
+### Basic Usage
+
+```powershell
+# Report mode - assess extensions without making changes
+.\Manage-AzureArcExtensions.ps1 -ResourceGroup "ArcRG"
+
+# Report mode with explicit check-only parameter
+.\Manage-AzureArcExtensions.ps1 -ResourceGroup "ArcRG" -CheckOnly
+
+# Upgrade mode - automatically update available extensions
+.\Manage-AzureArcExtensions.ps1 -ResourceGroup "ArcRG" -Upgrade
+
+# Use default Resource Group (ArcRG)
+.\Manage-AzureArcExtensions.ps1
+
+# Verbose output for troubleshooting
+.\Manage-AzureArcExtensions.ps1 -ResourceGroup "ArcRG" -Verbose
+```
+
+## ?? Use Cases
+
+### 1. Hybrid Infrastructure Management
+
+- Regular assessment of Azure Arc extension health across environments
+- Compliance reporting for hybrid cloud governance requirements
+- Infrastructure drift detection and remediation planning
+
+### 2. Extension Lifecycle Management
+
+- Automated identification of outdated extensions requiring updates
+- Bulk extension updates across multiple Azure Arc servers
+- Version consistency enforcement across server fleets
+
+### 3. Security and Compliance
+
+- Extension vulnerability management through timely updates
+- Security patch deployment for Azure Arc components
+- Audit trail generation for extension management activities
+
+### 4. Operational Efficiency
+
+- Reduced manual effort for multi-server extension management
+- Automated extension update workflows integration
+- Centralized reporting for Azure Arc extension inventory
+
+## ?? Features
+
+### Automated Discovery
+
+- Resource Group-based Azure Arc server enumeration
+- Extension inventory collection with version details
+- Connectivity status validation and health checks
+- Multi-threaded operations for improved performance
+
+### Intelligent Update Management
+
+- Update availability detection regardless of auto-upgrade settings
+- Support for both auto-upgrade enabled and disabled extensions
+- Parallel job execution for bulk update operations
+- Progress tracking and detailed logging capabilities
+
+### Enterprise Integration
+
+- Azure Resource Manager API compatibility
+- PowerShell workflow integration support
+- Azure CLI hybrid operations support
+- Role-based access control (RBAC) compliance
+
+### Flexible Operation Modes
+
+- **Report Mode**: Non-invasive assessment and inventory generation
+- **Upgrade Mode**: Automated extension updates with safety checks
+- **Verbose Mode**: Detailed logging for troubleshooting and auditing
+- **Resource Group Targeting**: Granular control over scope of operations
+
+## ?? Requirements
+
+### Azure Requirements
+
+- **Azure Subscription**: Active subscription with Arc-enabled servers
+- **Resource Groups**: Organized Azure Arc servers in logical groups
+- **Azure Arc Agent**: Version 1.0 or higher on target servers
+- **Network Connectivity**: HTTPS access to Azure Arc endpoints
+
+### Permissions Required
+
+- **Azure Arc Administrator** (recommended for full functionality)
+- **Contributor** role on target Resource Groups
+- **Reader** access for report-only operations
+- **Connected Machine Resource Administrator** for extension management
+
+### System Requirements
+
+- **Operating System**: Windows 10/11, Windows Server 2016+, Linux distributions
+- **PowerShell**: 5.1 minimum, PowerShell 7+ recommended for optimal performance
+- **Memory**: 4GB RAM minimum for bulk operations
+- **Network**: Stable internet connection for Azure API communication
+
+### Module Dependencies
+
+```powershell
+# Required PowerShell modules with minimum versions
+Az.Accounts >= 2.0.0
+Az.ConnectedMachine >= 0.5.0
+Az.Resources >= 4.0.0
+
+# Optional but recommended
+Az.Profile >= 1.0.0
+ThreadJob >= 2.0.0 (for improved parallel operations)
+```
+
+## ?? Advanced Configuration
+
+### Parameter Reference
+
+```powershell
+# ResourceGroup parameter
+-ResourceGroup "MyArcServers"  # Target specific Resource Group
+# Default: "ArcRG" if not specified
+
+# Operation mode parameters
+-CheckOnly                     # Explicit report-only mode
+-Upgrade                       # Enable extension updates
+
+# Verbose output
+-Verbose                       # Detailed logging and progress information
+```
+
+### Custom Resource Group Management
+
+```powershell
+# Multiple Resource Group operations
+$resourceGroups = @("ArcRG-Prod", "ArcRG-Dev", "ArcRG-Test")
+foreach ($rg in $resourceGroups) {
+    .\Manage-AzureArcExtensions.ps1 -ResourceGroup $rg -CheckOnly
+}
+```
+
+### Automated Scheduling
+
+```powershell
+# Create scheduled task for weekly extension assessment
+$Action = New-ScheduledTaskAction -Execute "PowerShell.exe" `
+    -Argument "-File C:\Scripts\Manage-AzureArcExtensions.ps1 -ResourceGroup 'ArcRG' -CheckOnly"
+$Trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Sunday -At 2:00AM
+$Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+Register-ScheduledTask -TaskName "Arc Extension Assessment" `
+    -Action $Action -Trigger $Trigger -Settings $Settings
+```
+
+## ?? Troubleshooting
+
+### Common Issues
+
+**Issue**: "Module Az.ConnectedMachine not found"
+**Solution**: Install required modules using `Install-Module Az.ConnectedMachine -Force`
+
+**Issue**: "Access denied" or "Insufficient permissions"
+**Solution**: Verify Azure Arc Administrator or Contributor role assignment
+
+**Issue**: "No Arc servers found in Resource Group"
+**Solution**: Confirm Resource Group name and verify Arc server registration
+
+**Issue**: "Azure CLI authentication required"
+**Solution**: Run `az login` and `az account set --subscription "your-subscription"`
+
+**Issue**: "Extension update failures"
+**Solution**: Check Arc server connectivity and Azure Arc agent status
+
+### Debug Mode
+
+```powershell
+# Enable detailed debugging
+$DebugPreference = "Continue"
+$VerbosePreference = "Continue"
+.\Manage-AzureArcExtensions.ps1 -ResourceGroup "ArcRG" -Verbose -Debug
+
+# PowerShell execution policy issues
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+### Logging and Monitoring
+
+```powershell
+# Redirect output to log file for analysis
+.\Manage-AzureArcExtensions.ps1 -ResourceGroup "ArcRG" -Verbose > "ArcExtensions-$(Get-Date -Format 'yyyyMMdd-HHmmss').log" 2>&1
+```
+
+## ?? Contributing
+
+We welcome contributions to improve Azure Arc extension management capabilities!
+
+### Contribution Guidelines
+
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/arc-enhancement`)
+3. **Follow** PowerShell best practices and Azure coding standards
+4. **Add** comprehensive help documentation and examples
+5. **Test** thoroughly with multiple Resource Groups and Arc server configurations
+6. **Update** this README for any new functionality
+7. **Commit** with clear, descriptive messages following conventional commits
+8. **Submit** a pull request with detailed description of changes
+
+### Development Standards
+
+- Follow PowerShell Script Analyzer guidelines and best practices
+- Include comprehensive error handling for Azure API operations
+- Add appropriate verbose output and progress indicators
+- Maintain compatibility with PowerShell 5.1 and 7+
+- Document all parameters with detailed help and examples
+- Test with both small and large-scale Arc deployments
+
+### Testing Guidelines
+
+- Test with various Azure Arc server configurations
+- Validate against different extension types and versions
+- Verify operation in different Azure regions and subscriptions
+- Test both report and upgrade modes extensively
+- Validate error handling and recovery scenarios
+
+## ?? License
+
+This project is licensed under the MIT License - see the [LICENSE](../LICENSE) file for details.
+
+## ?? Disclaimer
+
+This code is provided for demonstration purposes only. It is intended to illustrate Azure Arc extension management concepts and should not be used in production environments without proper review, testing, and validation. The authors and distributors of this code make no warranties regarding its functionality, security, or suitability for any specific use. Use at your own risk.
+
+**Production Deployment Recommendations**:
+
+- Thoroughly test in development environments before production use
+- Implement appropriate backup and rollback procedures
+- Monitor extension updates for potential impact on workloads
+- Follow your organization's change management processes
+- Maintain audit logs of all extension management activities
+
+## ?? Contact
+
+For questions, feedback, or support regarding Azure Arc extension management:
+
+- **Email**: [GitHub@ffournier.ca](mailto:GitHub@ffournier.ca)
+- **GitHub**: [@Frafou](https://github.com/Frafou)
+- **Issues**: Use GitHub Issues for bug reports and feature requests
+
+## ??? Tags
+
+`PowerShell` `Azure Arc` `Hybrid Cloud` `Extension Management` `Azure CLI` `Infrastructure Management` `DevOps` `Automation` `Enterprise` `Cloud Operations`
