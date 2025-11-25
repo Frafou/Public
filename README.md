@@ -18,10 +18,15 @@ A comprehensive collection of enterprise-grade PowerShell scripts for Windows ad
 
 **Location**: `DNS/`
 
-- **`GET-DNSScavengingData.ps1`** - DNS scavenging configuration auditing
+- **`GET-DNSScavengingData.ps1`** - DNS scavenging configuration auditing (Domain Controller method)
   - Collects DNS scavenging settings from all Domain Controllers
   - Comprehensive logging with PSLogging module
   - Performance metrics and execution timing
+
+- **`GET-DNSScavengingData(DNS).ps1`** - Enhanced DNS scavenging auditing (Zone/NS method)
+  - Zone-based DNS server discovery through NS records
+  - Whatif parameter support for analysis mode
+  - Advanced error handling and audit trail generation
 
 - **`PowerShell Script for DNS Scavenging Report.ps1`** - DNS scavenging reporting
   - Generates comprehensive DNS scavenging reports
@@ -192,10 +197,16 @@ Install-Module PSLogging              # For enhanced logging
 ### DNS Scavenging Analysis
 
 ```powershell
-# Collect scavenging data with detailed logging
+# Collect scavenging data with detailed logging (Domain Controller method)
 .\GET-DNSScavengingData.ps1 -Verbose
 
-# Generate scavenging report
+# Enhanced scavenging data collection (Zone/NS record method)
+.\GET-DNSScavengingData\(DNS\).ps1
+
+# Run enhanced script in analysis mode
+.\GET-DNSScavengingData\(DNS\).ps1 -Whatif
+
+# Generate comprehensive scavenging report
 .\"PowerShell Script for DNS Scavenging Report.ps1"
 ```
 

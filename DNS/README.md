@@ -6,7 +6,7 @@ A collection of PowerShell scripts for DNS infrastructure management, focusing o
 
 ### GET-DNSScavengingData.ps1
 
-**Purpose**: Comprehensive DNS scavenging configuration auditing and monitoring
+**Purpose**: Comprehensive DNS scavenging configuration auditing and monitoring across Domain Controllers
 
 **Key Features**:
 
@@ -23,6 +23,27 @@ A collection of PowerShell scripts for DNS infrastructure management, focusing o
 - Last scavenging timestamps
 - Refresh and no-refresh intervals
 - Domain Controller availability status
+
+### GET-DNSScavengingData(DNS).ps1
+
+**Purpose**: Enhanced DNS scavenging configuration auditing with zone-based DNS server discovery
+
+**Key Features**:
+
+- Automated DNS server discovery through NS records and zone analysis
+- Zone-specific scavenging configuration collection
+- Advanced error handling with detailed logging capabilities
+- Whatif parameter support for analysis mode
+- Comprehensive audit trail generation
+- Performance timing and execution metrics
+
+**What it collects**:
+
+- DNS server identification through zone NS records
+- Scavenging intervals and current states
+- Last scavenging operation timestamps
+- Refresh and no-refresh interval configurations
+- Zone-specific DNS server configurations
 
 ### PowerShell Script for DNS Scavenging Report.ps1
 
@@ -67,8 +88,14 @@ Get-ADDomainController -Filter *
 ### Basic Usage
 
 ```powershell
-# Collect DNS scavenging data with detailed logging
+# Collect DNS scavenging data with detailed logging (Domain Controller method)
 .\GET-DNSScavengingData.ps1
+
+# Enhanced DNS scavenging data collection (Zone/NS record method)
+.\GET-DNSScavengingData\(DNS\).ps1
+
+# Run enhanced script with analysis mode
+.\GET-DNSScavengingData\(DNS\).ps1 -Whatif
 
 # Run with verbose output for troubleshooting
 .\GET-DNSScavengingData.ps1 -Verbose
@@ -76,6 +103,24 @@ Get-ADDomainController -Filter *
 # Generate comprehensive scavenging report
 .\"PowerShell Script for DNS Scavenging Report.ps1"
 ```
+
+## ?? Script Comparison
+
+| Feature | GET-DNSScavengingData.ps1 | GET-DNSScavengingData(DNS).ps1 | PowerShell Script for DNS Scavenging Report.ps1 |
+|---------|---------------------------|--------------------------------|--------------------------------------------------|
+| **Discovery Method** | Domain Controller enumeration | Zone NS record analysis | Variable (depends on implementation) |
+| **Target Servers** | All Domain Controllers | DNS servers from NS records | Configurable DNS servers |
+| **Whatif Support** | No | Yes (-Whatif parameter) | Variable |
+| **Logging Method** | PSLogging module | PSLogging module | Standard PowerShell |
+| **Output Format** | Console + Log files | Console + Log files | CSV + Console |
+| **Best Use Case** | DC-focused DNS auditing | Zone-focused DNS analysis | Compliance reporting |
+| **Enterprise Ready** | Yes | Yes | Yes |
+
+### When to Use Which Script
+
+- **GET-DNSScavengingData.ps1**: Use when you need to audit DNS scavenging settings specifically on Domain Controllers
+- **GET-DNSScavengingData(DNS).ps1**: Use when you need zone-based DNS server discovery with analysis mode support
+- **PowerShell Script for DNS Scavenging Report.ps1**: Use when you need formatted reports for compliance and documentation
 
 ## ?? Use Cases
 
