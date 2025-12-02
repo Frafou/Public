@@ -93,16 +93,108 @@ param(
 	[string]$SiteLinkName
 
 )
+#region Functions
+#=============================================================================
+function Write-Log {
+    <#
+.SYNOPSIS
+Logs an informational message using the Write-Log function.
 
-Write-Host "`n========================================"
+.DESCRIPTION
+This invocation records an informational entry to the configured log destination.
+The Write-Log function typically accepts a message string and a severity level.
+Using the level 'INFO' denotes a standard operational message useful for tracing
+program flow or confirming successful steps without indicating a warning or error.
 
-Write-Host 'Script completed successfully.'
+.PARAMETER Message
+The textual content to be written to the log. Should be concise yet descriptive
+to aid later troubleshooting or auditing.
+
+.PARAMETER Level
+Specifies the severity or category of the log entry. Common values may include
+INFO, WARN, ERROR, DEBUG, or VERBOSE (implementation-dependent). 'INFO' is used
+for routine status events.
+
+.OUTPUTS
+Log: "$ScriptPath\$ScriptName-$LogDate.log"
+
+.Example
+Write-Log -Message 'This is an informational message.' -Level 'INFO'
+Write-Log -Message 'This is a warning message.' -Level 'WARNING'
+Write-Log -Message 'This is an error message.' -Level 'ERROR'
+Write-Log -Message 'This is a debug message.' -Level 'DEBUG'
+
+.Notes
+Author: Francois Fournier
+Created: 2025-01-01
+Version: 1.0.0
+Last Updated: 2025-01-01
+License: MIT License
+
+V1.0 Initial version
+
+.DISCLAIMER
+This script is provided 'as is' without warranty of any kind, either express or implied.
+Use of this script is at your own risk. The author assumes no responsibility for any
+damage or loss resulting from the use or misuse of this script.
+
+You are free to modify and distribute this script, provided that this disclaimer remains
+intact and visible in all copies and derivatives.
+
+Always test scripts in a safe environment before deploying to production.
+
+.link
+
+#>
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Message,
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('INFO', 'WARNING', 'ERROR', 'DEBUG', 'VERBOSE')]
+        [string]$Level
+    )
+    $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+    $logEntry = "$timestamp [$level] $message"
+    Add-Content -Path $logFile -Value $logEntry
+    switch ($Level) {
+        'INFO' {
+            Write-Host "[INFO] $Message" -ForegroundColor Green
+        }
+        'WARNING' {
+            Write-Host "[WARNING] $Message" -ForegroundColor Magenta
+        }
+        'ERROR' {
+            Write-Host "[ERROR] $Message" -ForegroundColor Red
+        }
+        'DEBUG' {
+            Write-Host "[DEBUG] $Message" -ForegroundColor Cyan
+        }
+        'VERBOSE' {
+            Write-Verbose "[VERBOSE] $Message"
+        }
+    }
+}
+
+#endregion Functions
+
+# region Variables
+#=============================================================================
+$LogDate = Get-Date -Format yyyyMMdd-HHmmss
+$ScriptPath = Split-Path -Path $MyInvocation.MyCommand.Definition -Parent
+$ScriptName = Split-Path -Path $MyInvocation.MyCommand.Definition -Leaf
+$logPath = "$ScriptPath"
+$LogName = ($ScriptName).Replace('.ps1', '') + '-' + $LogDate + '.log'
+$LogFile = $logPath + '\' + "$LogName"
+#endregion Variables
+
+Write-Log -Message  "`n========================================"  -Level 'INFO'
+Write-Log -Message  'Starting Script.' -Level 'INFO'
 
 # Import the Active Directory module
-Write-Host 'Importing Active Directory module.'
+Write-Log -Message  'Importing Active Directory module.' -Level 'INFO'
 try {
 	Import-Module ActiveDirectory -ErrorAction Stop
-	Write-Host 'Active Directory module imported successfully.' -ForegroundColor Green
+	Write-Log -Message  'Active Directory module imported successfully.'  -Level 'INFO'
 } catch {
 	throw "Failed to import Active Directory module. Ensure it is installed and you have the necessary permissions. Error: $($_.Exception.Message)"
 	return 1
@@ -112,17 +204,17 @@ try {
 # Get the current site link objects
 
 if ($SiteLinkName) {
-	Write-Host "Processing site link: $SiteLinkName"
+	Write-Log -Message  "Processing site link: $SiteLinkName"  -Level 'INFO'
 
 	$siteLinks = @(Get-ADReplicationSiteLink -Identity $SiteLinkName -ErrorAction Stop)
 } else {
-	Write-Host 'Retrieving site links from Active Directory.'
+	Write-Log -Message  'Retrieving site links from Active Directory.'  -Level 'INFO'
 	$siteLinks = @(Get-ADReplicationSiteLink -Filter * -ErrorAction Stop)
 }
-Write-Verbose "Found $($siteLinks.Count) site link(s)"
+Write-Log -Message "Found $($siteLinks.Count) site link(s)"  -Level 'VERBOSE'
 
 foreach ($siteLink in $siteLinks) {
-	Write-Verbose "Processing site link: $($siteLink.Name)"
+	Write-Log -Message "Processing site link: $($siteLink.Name)"  -Level 'VERBOSE'
 
 	# Check if this is the target site link
 
@@ -135,23 +227,25 @@ foreach ($siteLink in $siteLinks) {
 	}
 	$newOptions = $currentOptions -bor 1
 
-	Write-Verbose "Current Options value: $currentOptions"
-	Write-Verbose "New Options value: $newOptions"
+	Write-Log -Message "Current Options value: $currentOptions" -Level 'VERBOSE'
+	Write-Log -Message "New Options value: $newOptions" -Level 'VERBOSE'
 
 	# Apply the change
 	try {
 
 		if ($PSCmdlet.ShouldProcess("$($siteLink.Name)", 'Set-ADReplicationSiteLink ')) {
-			Set-ADReplicationSiteLink -Identity $SiteLinkName -Replace @{'options' = 1 } -ErrorAction Stop
+            Set-ADReplicationSiteLink -Identity $($siteLink.Name) -Replace @{'options' = 1 } -ErrorAction Stop
 		}
 
 		#Set-ADReplicationSiteLink -Identity $SiteLinkName -Replace @{'options' = 1 } -ErrorAction Stop -WhatIf
-		Write-Host "Change notification enabled for site link '$SiteLinkName'." -ForegroundColor Green
-		Write-Host "Options value changed from $currentOptions to $newOptions" -ForegroundColor Yellow
+		Write-Log -Message  "Change notification enabled for site link '$SiteLinkName'." -Level 'INFO'
+		Write-Log -Message  "Options value changed from $currentOptions to $newOptions" -Level 'WARNING'
 	} catch {
+        Write-Log -Message  "Failed to set Options on site link '$SiteLinkName'. Ensure you have the necessary permissions. Error: $($_.Exception.Message)" -Level 'ERROR'
 		throw "Failed to set Options on site link '$SiteLinkName'. Ensure you have the necessary permissions. Error: $($_.Exception.Message)"
+        return 1
 	}
 
 }
 
-Write-Host 'Script completed successfully.' -ForegroundColor Green
+Write-Log -Message  'Script completed successfully.' -Level 'INFO'
