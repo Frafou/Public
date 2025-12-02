@@ -165,6 +165,10 @@
 
 .LINK
     https://docs.microsoft.com/en-us/powershell/module/activedirectory/
+
+.errorcode
+    1 - General script failure (e.g., module import failure, parameter validation error)
+    2 - Specific error related to replication connection or site link modification
 #>
 <#
 Disclaimer
@@ -184,7 +188,7 @@ param(
     [Parameter(Mandatory = $true, Position = 0, HelpMessage = 'Replication Connection', ParameterSetName = 'ReplicationConnection')]
     [switch]$ReplicationConnection,
 
-    [Parameter(Mandatory = $False, Position = 0, HelpMessage = 'The name of the link to enable change notification for')]
+    [Parameter(Mandatory = $False, Position = 1, HelpMessage = 'The name of the link to enable change notification for')]
     [string]$Name
 )
 #region Functions
@@ -331,8 +335,9 @@ if ($ReplicationConnection -or $ReplicationSiteLink) {
             # Apply the change
             try {
 
-                if ($PSCmdlet.ShouldProcess("$($ReplicationConnection.Name)", 'Set-ADReplicationSiteLink ')) {
-                    Set-ADReplicationConnection -Identity $($ReplicationConnection.Name) -Replace @{'options' = 1 } -ErrorAction Stop
+                if ($PSCmdlet.ShouldProcess("$($ReplicationConnection.Name)", 'Set-ADReplicationConnection')) {
+                    Set-ADReplicationConnection -Identity $($ReplicationConnection.Name) -Replace @{'options' = = $currentOptions -bor 8
+                    } -ErrorAction Stop
                 }
 
                 Write-Log -Message "Change notification enabled for replication connection '$($ReplicationConnection.Name)'." -Level 'INFO'
@@ -340,7 +345,7 @@ if ($ReplicationConnection -or $ReplicationSiteLink) {
             } catch {
                 Write-Log -Message "Failed to set Options on replication connection '$($ReplicationConnection.Name)'. Ensure you have the necessary permissions. Error: $($_.Exception.Message)" -Level 'ERROR'
                 throw "Failed to set Options on replication connection '$($ReplicationConnection.Name)'. Ensure you have the necessary permissions. Error: $($_.Exception.Message)"
-                return 1
+                exit 2
             }
         }
     }
@@ -383,7 +388,7 @@ if ($ReplicationConnection -or $ReplicationSiteLink) {
             try {
 
                 if ($PSCmdlet.ShouldProcess("$($SiteLink.Name)", 'Set-ADReplicationSiteLink ')) {
-                    Set-ADReplicationSiteLink -Identity $($siteLink.Name) -Replace @{'options' = 1 } -ErrorAction Stop
+                    Set-ADReplicationSiteLink -Identity $($siteLink.Name) -Replace @{'options' = $newOptions } -ErrorAction Stop
                 }
 
                 #Set-ADReplicationSiteLink -Identity $Name -Replace @{'options' = 1 } -ErrorAction Stop -WhatIf
@@ -392,7 +397,7 @@ if ($ReplicationConnection -or $ReplicationSiteLink) {
             } catch {
                 Write-Log -Message "Failed to set Options on site link '$($SiteLink.Name)'. Ensure you have the necessary permissions. Error: $($_.Exception.Message)" -Level 'ERROR'
                 throw "Failed to set Options on site link '$($SiteLink.Name)'. Ensure you have the necessary permissions. Error: $($_.Exception.Message)"
-                return 1
+                exit 2
             }
 
         }
@@ -401,7 +406,7 @@ if ($ReplicationConnection -or $ReplicationSiteLink) {
 
 } else {
     Write-Log -Message 'No replication connection or site link parameter specified. Please provide at least one.' -Level 'ERROR'
-    return 1
+    exit 1
 }
 
 
