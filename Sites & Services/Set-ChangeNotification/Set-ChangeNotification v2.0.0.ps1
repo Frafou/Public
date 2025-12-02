@@ -4,107 +4,151 @@
 
 .DESCRIPTION
     This script enables change notification for Active Directory replication infrastructure
-    by setting the Options attribute to include the change notification flag. It supports
-    both site links (bit 1) and replication connections (bit 8) to optimize replication
-    performance by triggering immediate notifications when changes occur rather than
-    waiting for scheduled replication intervals.
+    by configuring the Options attribute to include the change notification flag. It supports
+    two distinct operation modes to optimize replication performance by triggering immediate
+    notifications when changes occur rather than waiting for scheduled replication intervals.
 
-    The script operates in two modes:
-    1. Site Link Mode (-ReplicationSiteLink): Configures change notification on site links
-    2. Connection Mode (-ReplicationConnection): Configures change notification on replication connections
+    The script operates in two mutually exclusive parameter sets:
+    1. Site Link Mode (-ReplicationSiteLink): Configures change notification on site links (Options bit 1)
+    2. Connection Mode (-ReplicationConnection): Configures change notification on replication connections (Options bit 8)
 
-    If no LinkName parameter is provided, the script processes all objects of the specified type.
-    If a specific LinkName is provided, only that object is processed.
+    When the Name parameter is provided, only the specified object is processed.
+    When Name is omitted, all objects of the specified type in the forest are processed.
+
+    The script includes comprehensive logging with timestamped entries and color-coded console output
+    for easy monitoring and troubleshooting.
 
 .PARAMETER ReplicationSiteLink
     Switch parameter to enable site link mode. When specified, the script will configure
     change notification on Active Directory site links by setting Options bit 1.
-    This parameter is mandatory when using site link mode.
+    This parameter is mandatory and mutually exclusive with ReplicationConnection.
+    Parameter Set: ReplicationSiteLink
 
 .PARAMETER ReplicationConnection
     Switch parameter to enable connection mode. When specified, the script will configure
     change notification on Active Directory replication connections by setting Options bit 8.
-    This parameter is mandatory when using connection mode.
+    This parameter is mandatory and mutually exclusive with ReplicationSiteLink.
+    Parameter Set: ReplicationConnection
 
-.PARAMETER LinkName
-    The name of the specific site link or replication connection to enable change notification for.
+.PARAMETER Name
+    The name of the specific site link or replication connection to process.
     If not specified, the script will process all objects of the type specified by the mode switch.
-    This parameter is optional and works with both operation modes.
+    This parameter is optional and works with both parameter sets.
+
+    Examples:
+    - For site links: "DEFAULTIPSITELINK", "HQ-Branch1-Link"
+    - For connections: Connection GUID or distinguished name
 
 .INPUTS
     None. You cannot pipe objects to this script.
 
 .OUTPUTS
-    Console output indicating success or failure of operations.
-    Log file: ScriptPath\Set-ChangeNotification-YYYYMMDD-HHMMSS.log
-    Displays current and new Options values for each processed object.
+    Console output with color-coded status messages:
+    - [INFO] messages in Green
+    - [WARNING] messages in Magenta
+    - [ERROR] messages in Red
+    - [DEBUG] messages in Cyan
+    - [VERBOSE] messages via Write-Verbose
+
+    Log file: ScriptDirectory\Set-ChangeNotification v2.0.0-YYYYMMDD-HHMMSS.log
+    Contains timestamped entries with severity levels for audit and troubleshooting.
 
 .EXAMPLE
-    .\Set-ChangeNotification.ps1 -ReplicationSiteLink
+    .\Set-ChangeNotification v2.0.0.ps1 -ReplicationSiteLink
+
     Enables change notification for all site links in the forest.
+    Uses parameter set 'ReplicationSiteLink' to process all available site links.
 
 .EXAMPLE
-    .\Set-ChangeNotification.ps1 -ReplicationSiteLink -LinkName "DEFAULTIPSITELINK"
+    .\Set-ChangeNotification v2.0.0.ps1 -ReplicationSiteLink -Name "DEFAULTIPSITELINK"
+
     Enables change notification for the specified site link 'DEFAULTIPSITELINK'.
+    Targets a single site link for change notification configuration.
 
 .EXAMPLE
-    .\Set-ChangeNotification.ps1 -ReplicationConnection
+    .\Set-ChangeNotification v2.0.0.ps1 -ReplicationConnection
+
     Enables change notification for all replication connections in the forest.
+    Uses parameter set 'ReplicationConnection' to process all available connections.
 
 .EXAMPLE
-    .\Set-ChangeNotification.ps1 -ReplicationConnection -LinkName "MyConnection"
-    Enables change notification for the specified replication connection 'MyConnection'.
+    .\Set-ChangeNotification v2.0.0.ps1 -ReplicationConnection -Name "ConnectionGUID"
+
+    Enables change notification for the specified replication connection.
+    Targets a single replication connection for change notification configuration.
 
 .EXAMPLE
-    .\Set-ChangeNotification.ps1 -ReplicationSiteLink -WhatIf
+    .\Set-ChangeNotification v2.0.0.ps1 -ReplicationSiteLink -WhatIf
+
     Shows what would happen if change notification were enabled for all site links without making changes.
+    Demonstrates safe testing using the -WhatIf parameter.
 
 .EXAMPLE
-    .\Set-ChangeNotification.ps1 -ReplicationConnection -LinkName "MyConnection" -Verbose
+    .\Set-ChangeNotification v2.0.0.ps1 -ReplicationConnection -Name "MyConnection" -Verbose
+
     Enables change notification for 'MyConnection' with detailed verbose output.
+    Provides comprehensive logging and detailed progress information.
 
 .NOTES
     Author: Francois Fournier
     Created: 2025-12-02
     Version: 2.0.0
     Last Updated: 2025-12-02
-    License: MIT
+    License: MIT License
 
     Version History:
     V1.0 - Initial version with basic site link functionality
-    V1.1 - Added LinkName parameter support for targeting specific site links
-    V2.0 - Complete rewrite with dual mode support (site links and connections)
+    V1.1 - Added Name parameter support for targeting specific site links
+    V2.0 - Complete rewrite with dual mode support using parameter sets
            Added comprehensive logging with Write-Log function
            Enhanced error handling and parameter validation
-           Improved code structure and documentation
+           Improved code structure with proper regions
+           Added color-coded console output with severity levels
+           Fixed variable scope issues and improved reliability
 
-    Requirements:
+    System Requirements:
+    - Windows PowerShell 5.1 or higher
     - Active Directory PowerShell module (RSAT)
-    - Domain Administrator or equivalent permissions
-    - PowerShell 5.1 or higher
-    - Network connectivity to domain controllers
-    - Write permissions to script directory for logging
+    - Windows Server 2016+ or Windows 10+ with RSAT installed
 
-    Important Notes:
-    - This script modifies Active Directory replication settings
-    - Always test with -WhatIf parameter first
-    - Monitor replication health after enabling change notification
-    - Change notification may increase network traffic
-    - Log files are created in the same directory as the script
-    - Site links use Options bit 1 (value 1 for change notification)
-    - Replication connections use Options bit 8 (value 8 for change notification)
+    Permission Requirements:
+    - Domain Administrator or equivalent Active Directory permissions
+    - Replication topology management permissions
+    - Local Administrator rights (script requires RunAsAdministrator)
+    - Write permissions to script directory for log file creation
 
-    Technical Details:
-    - Site Link Options: Bit 1 = Change notification (immediate replication)
-    - Connection Options: Bit 8 = Change notification for connections
-    - Uses bitwise OR to preserve existing option flags
-    - Comprehensive logging with timestamp and severity levels
+    Network Requirements:
+    - Connectivity to domain controllers in all sites
+    - Access to Active Directory schema and configuration partitions
+    - DNS resolution for domain controllers
+
+    Important Safety Notes:
+    - This script modifies Active Directory replication topology settings
+    - Always test with -WhatIf parameter in non-production environments first
+    - Monitor replication health and performance after enabling change notification
+    - Change notification increases network traffic between domain controllers
+    - Backup current replication configuration before making changes
+    - Consider staged deployment in large, complex AD environments
+
+    Technical Implementation Details:
+    - Site Links: Sets Options attribute bit 1 (decimal value 1) for immediate replication
+    - Replication Connections: Sets Options attribute bit 8 (decimal value 8) for connection notifications
+    - Uses parameter sets to ensure mutually exclusive operation modes
+    - Implements comprehensive error handling with proper exit codes
+    - Logging includes timestamps, severity levels, and detailed operation tracking
+    - Preserves existing Options flags using bitwise OR operations (commented logic)
+
+    Performance Considerations:
+    - Processing all objects may take time in large environments
+    - Network bandwidth requirements increase after enabling change notification
+    - Monitor domain controller CPU and memory usage during replication
+    - Consider enabling change notification during maintenance windows
 
 .COMPONENT
     Active Directory Replication Management
 
 .ROLE
-    Domain Controller Configuration Utility
+    Domain Controller Configuration and Replication Optimization Utility
 
 .FUNCTIONALITY
     Active Directory replication change notification configuration for site links and connections
@@ -117,6 +161,9 @@
 
 .LINK
     https://docs.microsoft.com/en-us/windows-server/identity/ad-ds/plan/understanding-active-directory-site-topology
+
+.LINK
+    https://docs.microsoft.com/en-us/powershell/module/activedirectory/
 #>
 <#
 Disclaimer
@@ -130,18 +177,14 @@ We grant You a nonexclusive, royalty-free right to use and modify the Sample Cod
 
 [CmdletBinding(SupportsShouldProcess)]
 param(
-
-
     [Parameter(Mandatory = $true, Position = 0, HelpMessage = 'Replication Site Link', ParameterSetName = 'ReplicationSiteLink')]
     [switch]$ReplicationSiteLink,
 
-    [Parameter(Mandatory = $true, Position = 0, HelpMessage = 'Replication Connection')]
+    [Parameter(Mandatory = $true, Position = 0, HelpMessage = 'Replication Connection', ParameterSetName = 'ReplicationConnection')]
     [switch]$ReplicationConnection,
 
     [Parameter(Mandatory = $False, Position = 0, HelpMessage = 'The name of the link to enable change notification for')]
-    [string]$LinkName
-
-
+    [string]$Name
 )
 #region Functions
 #=============================================================================
@@ -255,32 +298,29 @@ if ($ReplicationConnection -or $ReplicationSiteLink) {
     if ($ReplicationConnection) {
         Write-Log -Message 'Verifying Replication connections change notification status...' -Level 'INFO'
 
+        if ($Name) {
+            Write-Log -Message "Processing replication connection: $Name" -Level 'INFO'
 
-
-        if ($LinkName) {
-            Write-Log -Message "Processing site link: $LinkName" -Level 'INFO'
-
-            $SiteLinks = @(Get-ADReplicationSiteLink -Identity $LinkName -ErrorAction Stop)
+            $ReplicationConnections = @(Get-ADReplicationConnection -Identity $Name -ErrorAction Stop)
         } else {
-            Write-Log -Message 'Retrieving site links from Active Directory.' -Level 'INFO'
-            $SiteLinks = @(Get-ADReplicationSiteLink -Filter * -ErrorAction Stop)
+            Write-Log -Message 'Retrieving replication connections from Active Directory.' -Level 'INFO'
+            $ReplicationConnections = @(Get-ADReplicationConnection -Filter * -Properties options -ErrorAction Stop)
         }
 
-        Write-Log -Message "Found $($SiteLinks.Count) site link(s)" -Level 'VERBOSE'
-        $ReplicationConnections = Get-ADReplicationConnection -Filter * -Properties options
         Write-Log -Message "Found $($ReplicationConnections.Count) replication connection(s)" -Level 'VERBOSE'
 
         foreach ($ReplicationConnection in $ReplicationConnections) {
-            Write-Log -Message "Processing site link: $($ReplicationConnection.Name)" -Level 'VERBOSE'
+            Write-Log -Message "Processing replication connection: $($ReplicationConnection.Name)" -Level 'VERBOSE'
 
             # Check if this is the target site link
 
             # Enable change notification by setting the Options attribute to 1
             # If Options already has other flags, use bitwise OR to preserve them
-            $currentOptions = if ($siteLink.Options) {
-                $siteLink.Options
+            if ($ReplicationConnection.Options) {
+                $currentOptions = $ReplicationConnection.Options
+
             } else {
-                0
+                $currentOptions = 0
             }
             $newOptions = $currentOptions -bor 8
 
@@ -294,11 +334,11 @@ if ($ReplicationConnection -or $ReplicationSiteLink) {
                     Set-ADReplicationConnection -Identity $($ReplicationConnection.Name) -Replace @{'options' = 1 } -ErrorAction Stop
                 }
 
-                Write-Log -Message "Change notification enabled for site link '$($ReplicationConnection.Name)'." -Level 'INFO'
+                Write-Log -Message "Change notification enabled for replication connection '$($ReplicationConnection.Name)'." -Level 'INFO'
                 Write-Log -Message "Options value changed from $currentOptions to $newOptions" -Level 'WARNING'
             } catch {
-                Write-Log -Message "Failed to set Options on site link '$($ReplicationConnection.Name)'. Ensure you have the necessary permissions. Error: $($_.Exception.Message)" -Level 'ERROR'
-                throw "Failed to set Options on site link '$($ReplicationConnection.Name)'. Ensure you have the necessary permissions. Error: $($_.Exception.Message)"
+                Write-Log -Message "Failed to set Options on replication connection '$($ReplicationConnection.Name)'. Ensure you have the necessary permissions. Error: $($_.Exception.Message)" -Level 'ERROR'
+                throw "Failed to set Options on replication connection '$($ReplicationConnection.Name)'. Ensure you have the necessary permissions. Error: $($_.Exception.Message)"
                 return 1
             }
         }
@@ -310,10 +350,10 @@ if ($ReplicationConnection -or $ReplicationSiteLink) {
     if ($ReplicationSiteLink) {
 
         Write-Log -Message 'Verifying Replication Site Link change notification status...' -Level 'INFO'
-        if ($LinkName) {
-            Write-Log -Message "Processing site link: $LinkName" -Level 'INFO'
+        if ($Name) {
+            Write-Log -Message "Processing site link: $Name" -Level 'INFO'
 
-            $SiteLinks = @(Get-ADReplicationSiteLink -Identity $LinkName -ErrorAction Stop)
+            $SiteLinks = @(Get-ADReplicationSiteLink -Identity $Name -ErrorAction Stop)
         } else {
             Write-Log -Message 'Retrieving site links from Active Directory.' -Level 'INFO'
             $SiteLinks = @(Get-ADReplicationSiteLink -Filter * -ErrorAction Stop)
@@ -345,7 +385,7 @@ if ($ReplicationConnection -or $ReplicationSiteLink) {
                     Set-ADReplicationSiteLink -Identity $($siteLink.Name) -Replace @{'options' = 1 } -ErrorAction Stop
                 }
 
-                #Set-ADReplicationSiteLink -Identity $LinkName -Replace @{'options' = 1 } -ErrorAction Stop -WhatIf
+                #Set-ADReplicationSiteLink -Identity $Name -Replace @{'options' = 1 } -ErrorAction Stop -WhatIf
                 Write-Log -Message "Change notification enabled for site link '$($siteLink.Name)'." -Level 'INFO'
                 Write-Log -Message "Options value changed from $currentOptions to $newOptions" -Level 'WARNING'
             } catch {
@@ -359,7 +399,7 @@ if ($ReplicationConnection -or $ReplicationSiteLink) {
     #endregion SiteLink
 
 } else {
-    Write-Log -Message 'No replication connection or site link specified. Please provide at least one.' -Level 'ERROR'
+    Write-Log -Message 'No replication connection or site link parameter specified. Please provide at least one.' -Level 'ERROR'
     return 1
 }
 
