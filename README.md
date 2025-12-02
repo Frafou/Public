@@ -1,14 +1,14 @@
 # PowerShell Scripts Collection
 
-A comprehensive collection of enterprise-grade PowerShell scripts for Windows administration, Azure management, Active Directory operations, and media processing.
+A comprehensive collection of enterprise-grade PowerShell scripts for Windows administration, Azure management, Active Directory operations, and system automation.
 
-## ?? Repository Structure
+## ??? Repository Structure
 
 ### ?? Azure Extensions Management
 
 **Location**: `Azure-Extensions/`
 
-- **`Manage-AzureArcExtensions.ps1`** - Manages Azure Arc-enabled server extensions
+- **`Manage-AzureArcExtensions.ps1`** - Azure Arc-enabled server extensions management
   - Reports outdated extensions across resource groups
   - Automated bulk extension updates
   - Comprehensive logging and CSV reporting
@@ -57,11 +57,27 @@ A comprehensive collection of enterprise-grade PowerShell scripts for Windows ad
   - Interactive grid-view selection for bulk updates
   - WhatIf mode for safe testing
 
+### ?? Active Directory Sites & Services
+
+**Location**: `Sites & Services/`
+
+#### Set-ChangeNotification Tool
+
+**Location**: `Sites & Services/Set-ChangeNotification/`
+
+- **`Set-ChangeNotification.ps1`** - Active Directory replication optimization
+  - Enables change notification for all site links or specific site links
+  - Improves replication performance by triggering immediate updates
+  - Flexible operation modes (all sites or targeted site link)
+  - Supports WhatIf parameter for safe testing
+  - Comprehensive error handling and verbose logging
+  - Enterprise-ready with full PowerShell help documentation
+
 ### ?? Media Processing
 
 **Location**: `HEVC Conversion/`
 
-- **`StreamShift_1.0.9.ps1`** - Video transcoding and optimization
+- **Video transcoding and optimization tools**
   - Automated HEVC/x265 video conversion
   - Recursive directory scanning and codec detection
   - Container optimization (MP4 to MKV)
@@ -91,9 +107,12 @@ cd ..\DNS
 
 cd "..\Azure-Extensions"
 .\Manage-AzureArcExtensions.ps1 -ResourceGroup "Production-Servers"
+
+cd "..\Sites & Services\Set-ChangeNotification"
+.\Set-ChangeNotification.ps1 -WhatIf
 ```
 
-## ?? Features
+## ? Features
 
 ### Common Features Across Scripts
 
@@ -104,6 +123,7 @@ cd "..\Azure-Extensions"
 - ? CSV export capabilities for reporting
 - ? WhatIf support where applicable
 - ? Pipeline input support
+- ? Comment-based help documentation
 
 ### Security Features
 
@@ -121,16 +141,6 @@ cd "..\Azure-Extensions"
 - ?? Comprehensive reporting and analytics
 - ?? Integration with existing infrastructure
 
-## ?? Documentation
-
-Each script includes comprehensive PowerShell help documentation:
-
-```powershell
-Get-Help .\ScriptName.ps1 -Full
-Get-Help .\ScriptName.ps1 -Examples
-Get-Help .\ScriptName.ps1 -Parameter ParameterName
-```
-
 ## ?? Script Categories
 
 | Category | Purpose | Key Benefits |
@@ -138,6 +148,7 @@ Get-Help .\ScriptName.ps1 -Parameter ParameterName
 | **Azure Extensions** | Azure Arc server management | Automated extension updates, compliance reporting |
 | **DNS Management** | DNS infrastructure auditing | Scavenging configuration analysis, multi-DC reporting |
 | **MSA Management** | Service account automation | Enhanced security, automated password management |
+| **Sites & Services** | AD replication optimization | Improved replication performance, network efficiency |
 | **Media Processing** | Video optimization | Storage savings, format standardization |
 
 ## ?? Requirements by Category
@@ -150,8 +161,8 @@ Get-Help .\ScriptName.ps1 -Parameter ParameterName
 
 ### Active Directory Scripts
 
-- Active Directory PowerShell module
-- Domain administrator privileges (for MSA operations)
+- Active Directory PowerShell module (RSAT)
+- Domain administrator privileges (for MSA and Sites & Services operations)
 - Network connectivity to domain controllers
 
 ### Media Processing Scripts
@@ -160,14 +171,14 @@ Get-Help .\ScriptName.ps1 -Parameter ParameterName
 - Sufficient storage for processing
 - Modern CPU for optimal performance
 
-## ??? Installation & Setup
+## ?? Installation & Setup
 
 ### 1. PowerShell Modules
 
 ```powershell
 # Install required modules (run as administrator)
 Install-Module Az.ConnectedMachine    # For Azure Arc scripts
-Install-Module ActiveDirectory        # For MSA and DNS scripts
+Install-Module ActiveDirectory        # For MSA and Sites & Services scripts
 Install-Module PSLogging              # For enhanced logging
 ```
 
@@ -178,7 +189,7 @@ Install-Module PSLogging              # For enhanced logging
 
 ### 3. Permissions Setup
 
-- Ensure appropriate Active Directory permissions for MSA operations
+- Ensure appropriate Active Directory permissions for MSA and Sites & Services operations
 - Configure Azure authentication (az login or Connect-AzAccount)
 - Verify local administrator rights where required
 
@@ -197,14 +208,11 @@ Install-Module PSLogging              # For enhanced logging
 ### DNS Scavenging Analysis
 
 ```powershell
-# Collect scavenging data with detailed logging (Domain Controller method)
+# Collect scavenging data with detailed logging
 .\GET-DNSScavengingData.ps1 -Verbose
 
-# Enhanced scavenging data collection (Zone/NS record method)
-.\GET-DNSScavengingData\(DNS\).ps1
-
-# Run enhanced script in analysis mode
-.\GET-DNSScavengingData\(DNS\).ps1 -Whatif
+# Enhanced scavenging data collection with zone-based discovery
+.\GET-DNSScavengingData\(DNS\).ps1 -WhatIf
 
 # Generate comprehensive scavenging report
 .\"PowerShell Script for DNS Scavenging Report.ps1"
@@ -220,15 +228,40 @@ Install-Module PSLogging              # For enhanced logging
 .\Install-gMSA_ADAccount.ps1 -gMSAName "WebApp_gMSA" -gMSAGroupServers @('Web01$','Web02$')
 ```
 
-### Video Processing
+### Sites & Services Management
 
 ```powershell
-# Analyze video collection
-.\StreamShift_1.0.9.ps1 -InputPath "D:\Videos" -LogOnly
+# Preview change notification changes for all site links
+.\Set-ChangeNotification.ps1 -WhatIf
 
-# Convert videos to HEVC
-.\StreamShift_1.0.9.ps1 -InputPath "D:\Videos"
+# Enable change notification for specific site link
+.\Set-ChangeNotification.ps1 -SiteLinkName "DEFAULTIPSITELINK" -Verbose
+
+# Enable change notification for all site links
+.\Set-ChangeNotification.ps1
 ```
+
+## ?? Documentation
+
+Each script and directory includes comprehensive documentation:
+
+### Script-Level Help
+
+```powershell
+Get-Help .\ScriptName.ps1 -Full
+Get-Help .\ScriptName.ps1 -Examples
+Get-Help .\ScriptName.ps1 -Parameter ParameterName
+```
+
+### Directory-Level Documentation
+
+Each major directory contains its own README.md with:
+
+- Detailed script descriptions
+- Usage examples and best practices
+- Requirements and prerequisites
+- Troubleshooting guides
+- Technical implementation details
 
 ## ?? Contributing
 
@@ -245,10 +278,10 @@ We welcome contributions to improve these scripts! Please follow these guideline
 ### Contribution Standards
 
 - Follow PowerShell best practices and coding standards
-- Include comprehensive help documentation
+- Include comprehensive comment-based help documentation
 - Add appropriate error handling and logging
 - Test in multiple environments where possible
-- Update README.md if adding new scripts
+- Update README.md if adding new scripts or directories
 
 ## ?? License
 
@@ -256,9 +289,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## ?? Disclaimer
 
-This code is provided for demonstration purposes only. It is intended to illustrate concepts and should not be used in production environments without proper review, testing, and validation. The authors and distributors of this code make no warranties regarding its functionality, security, or suitability for any specific use. Use at your own risk.
+This code is provided for demonstration and educational purposes. It is intended to illustrate concepts and should not be used in production environments without proper review, testing, and validation. The authors and distributors of this code make no warranties regarding its functionality, security, or suitability for any specific use. Use at your own risk.
 
-Always test scripts in a safe environment before deploying to production systems.
+**Always test scripts in a safe environment before deploying to production systems.**
 
 ## ?? Contact
 
@@ -269,4 +302,7 @@ For questions, feedback, or support:
 
 ## ??? Tags
 
-`PowerShell` `Azure` `Active Directory` `DNS` `MSA` `HEVC` `Automation` `Enterprise` `Windows Administration` `Video Processing` `System Administration`
+`PowerShell` `Azure` `Active Directory` `DNS` `MSA` `Sites-Services` `Replication` `HEVC` `Automation` `Enterprise` `Windows Administration` `Video Processing` `System Administration` `Azure-Arc` `Group-Managed-Service-Accounts`
+
+---
+*Last Updated: December 2, 2025*
