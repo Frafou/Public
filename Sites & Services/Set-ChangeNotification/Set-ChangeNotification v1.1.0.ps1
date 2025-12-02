@@ -42,7 +42,7 @@
 .NOTES
     Author: System Administrator
     Created: 2025-12-02
-    Version: 1.0.0
+    Version: 1.1.0
     Last Updated: 2025-12-02
     License: MIT
 
@@ -89,8 +89,8 @@ We grant You a nonexclusive, royalty-free right to use and modify the Sample Cod
 [CmdletBinding(SupportsShouldProcess)]
 param(
 
-	[Parameter(Mandatory = $False, Position = 0, HelpMessage = 'The name of the site link to enable change notification for')]
-	[string]$SiteLinkName
+    [Parameter(Mandatory = $False, Position = 0, HelpMessage = 'The name of the site link to enable change notification for')]
+    [string]$SiteLinkName
 
 )
 
@@ -101,56 +101,56 @@ Write-Host 'Script completed successfully.'
 # Import the Active Directory module
 Write-Host 'Importing Active Directory module.'
 try {
-	Import-Module ActiveDirectory -ErrorAction Stop
-	Write-Host 'Active Directory module imported successfully.' -ForegroundColor Green
+    Import-Module ActiveDirectory -ErrorAction Stop
+    Write-Host 'Active Directory module imported successfully.' -ForegroundColor Green
 } catch {
-	throw "Failed to import Active Directory module. Ensure it is installed and you have the necessary permissions. Error: $($_.Exception.Message)"
-	return 1
+    throw "Failed to import Active Directory module. Ensure it is installed and you have the necessary permissions. Error: $($_.Exception.Message)"
+    return 1
 }
 
 
 # Get the current site link objects
 
 if ($SiteLinkName) {
-	Write-Host "Processing site link: $SiteLinkName"
+    Write-Host "Processing site link: $SiteLinkName"
 
-	$siteLinks = @(Get-ADReplicationSiteLink -Identity $SiteLinkName -ErrorAction Stop)
+    $siteLinks = @(Get-ADReplicationSiteLink -Identity $SiteLinkName -ErrorAction Stop)
 } else {
-	Write-Host 'Retrieving site links from Active Directory.'
-	$siteLinks = @(Get-ADReplicationSiteLink -Filter * -ErrorAction Stop)
+    Write-Host 'Retrieving site links from Active Directory.'
+    $siteLinks = @(Get-ADReplicationSiteLink -Filter * -ErrorAction Stop)
 }
 Write-Verbose "Found $($siteLinks.Count) site link(s)"
 
 foreach ($siteLink in $siteLinks) {
-	Write-Verbose "Processing site link: $($siteLink.Name)"
+    Write-Verbose "Processing site link: $($siteLink.Name)"
 
-	# Check if this is the target site link
+    # Check if this is the target site link
 
-	# Enable change notification by setting the Options attribute to 1
-	# If Options already has other flags, use bitwise OR to preserve them
-	$currentOptions = if ($siteLink.Options) {
-		$siteLink.Options
-	} else {
-		0
-	}
-	$newOptions = $currentOptions -bor 1
+    # Enable change notification by setting the Options attribute to 1
+    # If Options already has other flags, use bitwise OR to preserve them
+    $currentOptions = if ($siteLink.Options) {
+        $siteLink.Options
+    } else {
+        0
+    }
+    $newOptions = $currentOptions -bor 1
 
-	Write-Verbose "Current Options value: $currentOptions"
-	Write-Verbose "New Options value: $newOptions"
+    Write-Verbose "Current Options value: $currentOptions"
+    Write-Verbose "New Options value: $newOptions"
 
-	# Apply the change
-	try {
+    # Apply the change
+    try {
 
-		if ($PSCmdlet.ShouldProcess("$($siteLink.Name)", 'Set-ADReplicationSiteLink ')) {
-			Set-ADReplicationSiteLink -Identity $SiteLinkName -Replace @{'options' = 1 } -ErrorAction Stop
-		}
+        if ($PSCmdlet.ShouldProcess("$($siteLink.Name)", 'Set-ADReplicationSiteLink ')) {
+            Set-ADReplicationSiteLink -Identity $SiteLinkName -Replace @{'options' = 1 } -ErrorAction Stop
+        }
 
-		#Set-ADReplicationSiteLink -Identity $SiteLinkName -Replace @{'options' = 1 } -ErrorAction Stop -WhatIf
-		Write-Host "Change notification enabled for site link '$SiteLinkName'." -ForegroundColor Green
-		Write-Host "Options value changed from $currentOptions to $newOptions" -ForegroundColor Yellow
-	} catch {
-		throw "Failed to set Options on site link '$SiteLinkName'. Ensure you have the necessary permissions. Error: $($_.Exception.Message)"
-	}
+        #Set-ADReplicationSiteLink -Identity $SiteLinkName -Replace @{'options' = 1 } -ErrorAction Stop -WhatIf
+        Write-Host "Change notification enabled for site link '$SiteLinkName'." -ForegroundColor Green
+        Write-Host "Options value changed from $currentOptions to $newOptions" -ForegroundColor Yellow
+    } catch {
+        throw "Failed to set Options on site link '$SiteLinkName'. Ensure you have the necessary permissions. Error: $($_.Exception.Message)"
+    }
 
 }
 
