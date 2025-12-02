@@ -105,6 +105,7 @@
            Improved code structure with proper regions
            Added color-coded console output with severity levels
            Fixed variable scope issues and improved reliability
+           Renamed LinkName parameter to Name for consistency
 
     System Requirements:
     - Windows PowerShell 5.1 or higher
@@ -136,7 +137,7 @@
     - Uses parameter sets to ensure mutually exclusive operation modes
     - Implements comprehensive error handling with proper exit codes
     - Logging includes timestamps, severity levels, and detailed operation tracking
-    - Preserves existing Options flags using bitwise OR operations (commented logic)
+    - Current implementation replaces Options value rather than preserving existing flags
 
     Performance Considerations:
     - Processing all objects may take time in large environments
