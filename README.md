@@ -305,4 +305,4 @@ For questions, feedback, or support:
 `PowerShell` `Azure` `Active Directory` `DNS` `MSA` `Sites-Services` `Replication` `HEVC` `Automation` `Enterprise` `Windows Administration` `Video Processing` `System Administration` `Azure-Arc` `Group-Managed-Service-Accounts`
 
 ---
-*Last Updated: December 2, 2025*
+*Last Updated: December 6, 2025*
