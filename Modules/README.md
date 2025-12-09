@@ -248,5 +248,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Last Updated**: December 8, 2025
-**Version**: 1.0
-**Maintainer**: PowerShell Team
+**Version**: 1.3
+**Maintainer**: Francois Fournier
