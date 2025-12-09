@@ -33,10 +33,10 @@
 
 .NOTES
     File Name      : Update-Modules.ps1
-    Author         : Francois Fournier
+    Author         : Your Organization PowerShell Team
     Created        : 2024-12-05
-    Version        : 1.3
-    Last Modified  : December 8, 2025
+    Version        : 1.0
+    Last Modified  : 2024-12-05
     Prerequisite   : Administrator privileges, Internet connectivity
 
     REQUIREMENTS:
@@ -119,7 +119,7 @@
 
 #requires -Version 5.1
 #requires -RunAsAdministrator
-[CmdletBinding(SupportsShouldProcess)]
+[CmdletBinding()]
 param(
 )
 
@@ -129,11 +129,11 @@ param(
 function Write-Log {
     <#
 .SYNOPSIS
-Logs an informational message using the Write-Log -LogFile $LogFile function.
+Logs an informational message using the Write-Log function.
 
 .DESCRIPTION
 This invocation records an informational entry to the configured log destination.
-The Write-Log -LogFile $LogFile function typically accepts a message string and a severity level.
+The Write-Log function typically accepts a message string and a severity level.
 Using the level 'INFO' denotes a standard operational message useful for tracing
 program flow or confirming successful steps without indicating a warning or error.
 
@@ -150,10 +150,10 @@ for routine status events.
 Log: "$ScriptPath\$ScriptName-$LogDate.log"
 
 .Example
-Write-Log -LogFile $LogFile -Message 'This is an informational message.' -Level 'INFO'
-Write-Log -LogFile $LogFile -Message 'This is a warning message.' -Level 'WARNING'
-Write-Log -LogFile $LogFile -Message 'This is an error message.' -Level 'ERROR'
-Write-Log -LogFile $LogFile -Message 'This is a debug message.' -Level 'DEBUG'
+Write-Log -Message 'This is an informational message.' -Level 'INFO'
+Write-Log -Message 'This is a warning message.' -Level 'WARNING'
+Write-Log -Message 'This is an error message.' -Level 'ERROR'
+Write-Log -Message 'This is a debug message.' -Level 'DEBUG'
 
 .Notes
 Author: Francois Fournier
@@ -182,9 +182,7 @@ Always test scripts in a safe environment before deploying to production.
         [string]$Message,
         [Parameter(Mandatory = $true)]
         [ValidateSet('INFO', 'WARNING', 'ERROR', 'DEBUG', 'VERBOSE')]
-        [string]$Level,
-        [Parameter(Mandatory = $true)]
-        [string]$LogFile
+        [string]$Level
     )
     $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
     $logEntry = "$timestamp [$level] $message"
@@ -296,7 +294,7 @@ function Invoke-ElevatedExecution {
     if ($MyInvocation.ScriptName -ne '') {
         if (-not $IsAdmin) {
             try {
-                Write-Log -LogFile $LogFile 'Error - Elevating script.' -Level 'WARNING'
+                Write-Log 'Error - Elevating script.' -Level 'WARNING'
                 $arg = "-file `"$($MyInvocation.ScriptName)`""
 
                 $Version = $PSVersionTable.PSEdition
@@ -310,13 +308,13 @@ function Invoke-ElevatedExecution {
                     }
                 }
             } catch {
-                Write-Log -LogFile $LogFile 'Error - Failed to restart script in elevated privilege' -Level 'ERROR'
+                Write-Log 'Error - Failed to restart script in elevated privilege' -Level 'ERROR'
                 break
             }
             exit # Quit this session of powershell
         }
     } else {
-        Write-Log -LogFile $LogFile 'Error - Script must be saved as a .ps1 file first' -Level 'ERROR'
+        Write-Log 'Error - Script must be saved as a .ps1 file first' -Level 'ERROR'
         break
     }
 }
@@ -423,15 +421,15 @@ function Update-InstalledModules {
     https://docs.microsoft.com/en-us/powershell/scripting/gallery/getting-started
 #>
 
-    [CmdletBinding(SupportsShouldProcess)]
+    [CmdletBinding()]
     param()
 
-    Write-Log -LogFile $LogFile 'Getting installed modules...' -Level 'INFO'
+    Write-Log 'Getting installed modules...' -Level 'INFO'
     $InstalledModules = Get-InstalledModule
     $TotalModules = $InstalledModules.Count
-    Write-Log -LogFile $LogFile "Found $TotalModules installed modules" -Level 'INFO'
+    Write-Log "Found $TotalModules installed modules" -Level 'INFO'
 
-    Write-Log -LogFile $LogFile 'Comparing to online versions...' -Level 'INFO'
+    Write-Log 'Comparing to online versions...' -Level 'INFO'
     $Counter = 0
 
     foreach ($module in $InstalledModules) {
@@ -442,7 +440,7 @@ function Update-InstalledModules {
         try {
             $online = Find-Module -Name $module.name -Repository PSGallery -ErrorAction Stop
         } catch {
-            Write-Log -LogFile $LogFile "Module '$($module.name)' was not found in the PowerShell Gallery or gallery is unavailable" -Level 'WARNING'
+            Write-Log "Module '$($module.name)' was not found in the PowerShell Gallery or gallery is unavailable" -Level 'WARNING'
             continue
         }
 
@@ -472,21 +470,15 @@ function Update-InstalledModules {
 
         if ($UpdateAvailable) {
             try {
-                Write-Log -LogFile $LogFile "Updating module '$($module.name)' from version $($module.version) to $($online.version)" -Level 'INFO'
-
-                if ($PSCmdlet.ShouldProcess('Module updates', 'Mode')) {
-                    try {
-                        Update-Module -Name $module.name -Force -ErrorAction Stop
-                    } catch {
-                        Write-Log -LogFile $LogFile "Unable to update module '$($module.name)'." -Level 'Error'
-                        continue
-                    }
-                }	else {
-                    write-Log -LogFile $LogFile "Update of module '$($module.name)' was skipped due to -WhatIf parameter." -Level 'INFO'
-                    continue
+                Write-Log "Updating module '$($module.name)' from version $($module.version) to $($online.version)" -Level 'INFO'
+                if ($PSCmdlet.ShouldProcess("Module '$($module.name)'", "Update to version $($online.version)")) {
+                    Update-Module -Name $module.name -Force -ErrorAction Stop
+                } else {
+                    Update-Module -Name $module.name -Force -ErrorAction Stop
                 }
+                Update-Module -Name $module.name -Force -ErrorAction Stop
 
-                Write-Log -LogFile $LogFile "Cleaning up old versions of '$($module.name)'" -Level 'INFO'
+                Write-Log "Cleaning up old versions of '$($module.name)'" -Level 'INFO'
                 $Latest = Get-InstalledModule -Name $module.name -ErrorAction Stop
                 $OldVersions = Get-InstalledModule -Name $module.name -AllVersions -ErrorAction Stop | Where-Object { $_.Version -ne $Latest.Version }
 
@@ -496,12 +488,12 @@ function Update-InstalledModules {
                             Uninstall-Module -Name $OldVersion.Name -RequiredVersion $OldVersion.Version -Force -ErrorAction Stop
                             Write-Verbose "Removed version $($OldVersion.Version) of $($OldVersion.Name)"
                         } catch {
-                            Write-Log -LogFile $LogFile "Failed to uninstall version $($OldVersion.Version) of $($OldVersion.Name): $($_.Exception.Message)" -Level 'WARNING'
+                            Write-Log "Failed to uninstall version $($OldVersion.Version) of $($OldVersion.Name): $($_.Exception.Message)" -Level 'WARNING'
                         }
                     }
                 }
             } catch {
-                Write-Log -LogFile $LogFile "Failed to update module '$($module.name)': $($_.Exception.Message)" -Level 'ERROR'
+                Write-Log "Failed to update module '$($module.name)': $($_.Exception.Message)" -Level 'ERROR'
             }
         }
 
@@ -510,7 +502,7 @@ function Update-InstalledModules {
     # Complete progress bar
     Write-Progress -Activity 'Checking module updates' -Completed
 
-    Write-Log -LogFile $LogFile 'Module update process completed successfully' -Level 'INFO'
+    Write-Log 'Module update process completed successfully' -Level 'INFO'
 }
 
 #endregion Functions
@@ -528,52 +520,45 @@ $LogName = ($ScriptName).Replace('.ps1', '') + '-' + $env:computername + '-' + $
 $logFile = $logPath + '\' + "$LogName"
 
 # Start execution
-Write-Log -LogFile $LogFile '====================================' -Level 'INFO'
-Write-Log -LogFile $LogFile 'Starting PowerShell Module Update Process' -Level 'INFO'
+Write-Log '====================================' -Level 'INFO'
+Write-Log 'Starting PowerShell Module Update Process' -Level 'INFO'
 $StartTime = Get-Date
-Write-Log -LogFile $LogFile "Script started at: $StartTime" -Level 'INFO'
-Write-Log -LogFile $LogFile '====================================' -Level 'INFO'
+Write-Log "Script started at: $StartTime" -Level 'INFO'
+Write-Log '====================================' -Level 'INFO'
 
-Write-Log -LogFile $LogFile 'Checking pre-requisites' -Level 'INFO'
+Write-Log 'Checking pre-requisites' -Level 'INFO'
 
-Write-Log -LogFile $LogFile 'Checking for elevated mode' -Level 'INFO'
+Write-Log 'Checking for elevated mode' -Level 'INFO'
 try {
     # Ensure running with administrator privileges
     Invoke-ElevatedExecution
-    Write-Log -LogFile $LogFile 'running in elevated mode' -Level 'INFO'
+    Write-Log 'running in elevated mode' -Level 'INFO'
 } catch {
-    Write-Log -LogFile $LogFile '====================================' -Level 'ERROR'
-    Write-Log -LogFile $LogFile "Script execution failed: $($_.Exception.Message)" -Level 'ERROR'
-    Write-Log -LogFile $LogFile '====================================' -Level 'ERROR'
+    Write-Log '====================================' -Level 'ERROR'
+    Write-Log "Script execution failed: $($_.Exception.Message)" -Level 'ERROR'
+    Write-Log '====================================' -Level 'ERROR'
     exit 1
 }
 
 # Verify PowerShellGet module is available
-Write-Log -LogFile $LogFile 'Verifying PowerShellGet module availability...' -Level 'INFO'
+Write-Log 'Verifying PowerShellGet module availability...' -Level 'INFO'
 if (-not (Get-Module -ListAvailable -Name PowerShellGet)) {
-    Write-Log -LogFile $LogFile 'PowerShellGet module is required but not found. Please install PowerShellGet first.' -Level 'ERROR'
+    Write-Log 'PowerShellGet module is required but not found. Please install PowerShellGet first.' -Level 'ERROR'
     exit 2
 }
-Write-Log -LogFile $LogFile 'Completed checking pre-requisites' -Level 'INFO'
+Write-Log 'Completed checking pre-requisites' -Level 'INFO'
 
 # Start the update process
-Write-Log -LogFile $LogFile '====================================' -Level 'INFO'
-Write-Log -LogFile $LogFile 'Initiating module update process...' -Level 'INFO'
-if ($PSCmdlet.ShouldProcess('Module updates', 'Mode')) {
-    Write-Log -LogFile $LogFile '====================================' -Level 'WARNING'
-    Write-Log -LogFile $LogFile 'Running in regular mode - changes will be made.' -Level 'WARNING'
-    Write-Log -LogFile $LogFile '====================================' -Level 'WARNING'
-}	else {
-    Write-Log -LogFile $LogFile 'Running in WhatIf mode - no changes will be made.' -Level 'INFO'
-}
+Write-Log '====================================' -Level 'INFO'
+Write-Log 'Initiating module update process...' -Level 'INFO'
 Update-InstalledModules
-Write-Log -LogFile $LogFile '====================================' -Level 'INFO'
-Write-Log -LogFile $LogFile 'PowerShell Module Update Process Completed Successfully' -Level 'INFO'
+Write-Log '====================================' -Level 'INFO'
+Write-Log 'PowerShell Module Update Process Completed Successfully' -Level 'INFO'
 
 # Script completion
 $EndTime = Get-Date
-Write-Log -LogFile $LogFile "Script ended at: $EndTime" -Level 'INFO'
+Write-Log "Script ended at: $EndTime" -Level 'INFO'
 $Duration = $EndTime - $StartTime
 $Formatted = 'Hours: {0:D2} Minutes:{1:D2} Seconds:{2:D2}' -f $Duration.Hours, $Duration.Minutes, $Duration.Seconds
-Write-Log -LogFile $LogFile "Total duration: $Formatted" -Level 'INFO'
-Write-Log -LogFile $LogFile '====================================' -Level 'INFO'
+Write-Log "Total duration: $Formatted" -Level 'INFO'
+Write-Log '====================================' -Level 'INFO'
