@@ -434,7 +434,7 @@ process {
 	Write-Log 'Script started.' -Level 'INFO'
 
 
-	if ($MSAName.Length -ge 15) {
+	if ($MSAName.Length -gt 15) {
 		Write-Log 'MSA Name must be less than 15 characters.' -Level 'ERROR'
 		exit 1
 	} else {
