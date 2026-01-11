@@ -8,6 +8,8 @@ A comprehensive PowerShell toolkit for implementing, managing, and maintaining M
 
 **Purpose**: Standalone Managed Service Account (sMSA) lifecycle management for single-server applications
 
+**Usage Notes**: This script should be run on the server where the services needs to be installed
+
 **Key Features**:
 
 - **Automated sMSA Creation**: Creates new standalone managed service accounts with proper configuration

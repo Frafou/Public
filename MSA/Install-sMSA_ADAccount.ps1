@@ -4,7 +4,12 @@
 
 .DESCRIPTION
     This comprehensive script manages the complete lifecycle of Active Directory standalone Managed Service Accounts (sMSA).
-    It performs the following operations:
+
+		Usage note:
+		This script should be run from the server where the MSA will be installed.
+		This script needs to be run with and account that has domain or enterprise admin privileges, otherwise creation may fail.
+
+		It performs the following operations:
 
     CREATION MODE (Default):
     1. Validates prerequisites and administrative permissions
@@ -232,6 +237,8 @@
     (i) to not use Our name, logo, or trademarks to market Your software product in which the Sample Code is embedded; (ii) to include a valid copyright notice on Your software product in which the Sample Code is embedded; and (iii) to indemnify, hold harmless, and defend Us and Our suppliers from and against any claims or lawsuits, including attorneys' fees, that arise or result from the use or distribution of the Sample Code.
 #>
 
+
+
 <#
 #Requires -Version <N>[.<n>]
 #Requires -Modules { <Module-Name> | <Hashtable> }
@@ -258,8 +265,12 @@ param(
 
 )
 # =============================================================================
+
+
+
 #region begin
 begin {
+
 	##region Variables
 	<#
 =====================================================
@@ -279,6 +290,90 @@ begin {
 
 	#endregion Variables
 	#region Functions
+	# Function to test if current user is member of Domain Admins or Enterprise Admins
+	<#
+.SYNOPSIS
+    Checks if the current user is a member of "Domain Admins" or "Enterprise Admins".
+.DESCRIPTION
+    Uses the current logon token groups (SIDs) and translates them to NTAccount names.
+    This captures effective memberships, including nested groups and universal groups.
+.OUTPUTS
+    Writes a summary to the console and returns a custom object with boolean flags.
+.NOTES
+    No RSAT/AD module required; works via .NET types.
+#>
+
+	function Test-CurrentUserAdminGroupMembership {
+		[CmdletBinding()]
+		param()
+
+		# Get the current Windows identity and token groups
+		$identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+
+		if (-not $identity) {
+			Write-Log 'Unable to get current Windows identity.' -Level 'Warning'
+			return [pscustomobject]@{
+				User                   = $env:USERNAME
+				DomainAdmins           = $false
+				EnterpriseAdmins       = $false
+				IsDomainJoinedIdentity = $false
+			}
+		}
+
+		# Attempt to determine if it's a domain identity (AccountDomainSid may be $null for local accounts)
+		$isDomain = $null -ne $identity.User.AccountDomainSid
+
+		# Translate token group SIDs to NTAccount names: 'DOMAIN\GroupName'
+		$groupNames = @()
+		foreach ($sid in $identity.Groups) {
+			try {
+				$name = $sid.Translate([System.Security.Principal.NTAccount]).Value
+				if ($name) {
+					$groupNames += $name
+				}
+			} catch {
+				# Some SIDs may not translate (e.g., service SIDs); ignore
+			}
+		}
+
+		# Case-insensitive checks for Domain Admins / Enterprise Admins across any domain
+		$isDomainAdmin = $groupNames -match '^[^\\]+\\Domain Admins$'
+		$isEnterpriseAdmin = $groupNames -match '^[^\\]+\\Enterprise Admins$'
+
+		# Emit a friendly summary
+		Write-Log "Current user: $($identity.Name)" -Level 'INFO'
+		Write-Log "Domain-joined identity: $isDomain" -Level 'INFO'
+		Write-Log "Member of 'Domain Admins'     : $isDomainAdmin" -Level 'INFO'
+		Write-Log "Member of 'Enterprise Admins' : $isEnterpriseAdmin" -Level 'INFO'
+
+		# Return a structured object for automation
+		return [pscustomobject]@{
+			User                   = $identity.Name
+			DomainAdmins           = [bool]$isDomainAdmin
+			EnterpriseAdmins       = [bool]$isEnterpriseAdmin
+			IsDomainJoinedIdentity = [bool]$isDomain
+			TokenGroupCount        = $groupNames.Count
+			TokenGroups            = $groupNames
+		}
+	}
+
+
+	# function to test if current user/process has administrative rights
+
+	<#
+.SYNOPSIS
+    Tests if the current user/process has administrative rights.
+.DESCRIPTION
+    - Detects if the current PowerShell process is running elevated (admin).
+    - Detects if the current user belongs to local Administrators (S-1-5-32-544).
+    - Detects UAC status and token elevation type.
+    - Attempts a harmless admin-only action to verify practical capability.
+.OUTPUTS
+    PSCustomObject with elevation and membership details.
+.NOTES
+    No external modules required; uses .NET and native Win32 calls.
+#>
+
 	# Function to write to log
 	function Write-Log {
 		param (
@@ -434,6 +529,23 @@ process {
 	Write-Log 'Script started.' -Level 'INFO'
 
 
+	# Check if DomainAdmins or EnterpriseAdmins
+	$result = Test-CurrentUserAdminGroupMembership
+	if ($result.DomainAdmins -or $result.EnterpriseAdmins) {
+		Write-Log 'User has sufficient admin privileges.' -Level 'INFO'
+		return 0
+	} else {
+		Write-Log 'User does not have sufficient admin privileges.' -Level 'ERROR'
+		return 1
+	}
+
+	# Check if running as Administrator
+	if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] 'Administrator')) {
+		Write-Log 'Script must be run with Administrator Privileges.' -Level 'ERROR'
+		return 2
+	}
+
+
 	if ($MSAName.Length -gt 15) {
 		Write-Log 'MSA Name must be less than 15 characters.' -Level 'ERROR'
 		exit 1
@@ -441,11 +553,7 @@ process {
 		Write-Log 'MSA Name is valid.' -Level 'INFO'
 	}
 
-	# Check if running as Administrator
-	if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] 'Administrator')) {
-		Write-Log 'Script must be run as Administrator.' -Level 'ERROR'
-		exit 2
-	}
+
 
 	# Check OS version
 	$osVersion = (Get-CimInstance Win32_OperatingSystem).Caption
