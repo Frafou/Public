@@ -1,7 +1,7 @@
 # links
 
-<https://docs.github.com/en/copilot/concepts/prompting/prompt-engineering>
+1. <https://docs.github.com/en/copilot/concepts/prompting/prompt-engineering>
 
-<https://github.com/f/awesome-chatgpt-prompts>
+2. <https://github.com/f/awesome-chatgpt-prompts>
 
-<https://github.com/abelberhane/GPT-Scripts/tree/main/role-prompting>
+3. <https://github.com/abelberhane/GPT-Scripts/tree/main/role-prompting>
