@@ -1,0 +1,658 @@
+<#
+.SYNOPSIS
+    Enumerates and analyzes FSMO (Flexible Single Master Operations) roles in Active Directory.
+
+.DESCRIPTION
+    This script provides comprehensive analysis of FSMO role holders across the Active Directory
+    forest and domains. It identifies current role holders, validates their availability,
+    checks for role placement best practices, and provides detailed reporting with
+    recommendations for optimization and disaster recovery planning.
+
+.PARAMETER DomainName
+    Specifies the domain to analyze. If not provided, uses the current computer's domain.
+
+.PARAMETER IncludeForest
+    Include forest-wide FSMO roles (Schema Master and Domain Naming Master) in the analysis.
+
+.PARAMETER OutputPath
+    Specifies the output directory for result files. Default is current directory.
+
+.PARAMETER OutputFormat
+    Specifies the output format. Valid values are 'CSV', 'JSON', 'Excel', 'Object', 'Text'. Default is 'CSV'.
+
+.PARAMETER ValidateAvailability
+    Test connectivity and availability of FSMO role holders.
+
+.PARAMETER AnalyzePlacement
+    Analyze FSMO role placement against Microsoft best practices.
+
+.PARAMETER IncludeRecommendations
+    Include optimization and disaster recovery recommendations in the output.
+
+.PARAMETER Credential
+    Specifies credentials to use when connecting to domain controllers.
+
+.PARAMETER DetailedAnalysis
+    Include detailed analysis of role dependencies and risk assessment.
+
+.EXAMPLE
+    .\FSMO_v3.0.ps1
+    Basic FSMO role enumeration for current domain.
+
+.EXAMPLE
+    .\FSMO_v3.0.ps1 -IncludeForest -ValidateAvailability -OutputFormat Excel
+    Comprehensive FSMO analysis including forest roles with availability testing.
+
+.EXAMPLE
+    .\FSMO_v3.0.ps1 -AnalyzePlacement -IncludeRecommendations -OutputFormat JSON
+    Detailed analysis with best practice recommendations in JSON format.
+
+.EXAMPLE
+    .\FSMO_v3.0.ps1 -OutputFormat Object | Where-Object {$_.Status -ne 'Available'}
+    Returns FSMO objects for further analysis, filtering unavailable role holders.
+
+.NOTES
+    Version: 3.0
+    Author: Updated with modern PowerShell practices
+    Last Modified: February 2026
+    Requires: PowerShell 5.1 or higher, ActiveDirectory module
+#>
+
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $false, HelpMessage = "Domain name to analyze")]
+    [string]$DomainName,
+
+    [Parameter(Mandatory = $false, HelpMessage = "Include forest-wide FSMO roles")]
+    [switch]$IncludeForest,
+
+    [Parameter(Mandatory = $false, HelpMessage = "Output directory path")]
+    [string]$OutputPath = (Get-Location).Path,
+
+    [Parameter(Mandatory = $false, HelpMessage = "Output format")]
+    [ValidateSet('CSV', 'JSON', 'Excel', 'Object', 'Text')]
+    [string]$OutputFormat = 'CSV',
+
+    [Parameter(Mandatory = $false, HelpMessage = "Validate FSMO role holder availability")]
+    [switch]$ValidateAvailability,
+
+    [Parameter(Mandatory = $false, HelpMessage = "Analyze FSMO role placement")]
+    [switch]$AnalyzePlacement,
+
+    [Parameter(Mandatory = $false, HelpMessage = "Include recommendations")]
+    [switch]$IncludeRecommendations,
+
+    [Parameter(Mandatory = $false, HelpMessage = "Credentials for AD access")]
+    [System.Management.Automation.PSCredential]$Credential,
+
+    [Parameter(Mandatory = $false, HelpMessage = "Include detailed analysis")]
+    [switch]$DetailedAnalysis
+)
+
+#Requires -Version 5.1
+#Requires -Modules ActiveDirectory
+
+function Get-FSMORoles {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $false)]
+        [string]$DomainName,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$IncludeForest,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$ValidateAvailability,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$AnalyzePlacement,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$DetailedAnalysis,
+
+        [Parameter(Mandatory = $false)]
+        [System.Management.Automation.PSCredential]$Credential
+    )
+
+    $fsmoResults = @()
+
+    try {
+        Write-Verbose "Starting FSMO role analysis"
+
+        # Get domain information
+        if ([string]::IsNullOrEmpty($DomainName)) {
+            $domain = Get-ADDomain -Current LocalComputer -ErrorAction Stop
+            $DomainName = $domain.Name
+            Write-Verbose "Using current domain: $DomainName"
+        } else {
+            $domain = Get-ADDomain -Identity $DomainName -ErrorAction Stop
+            Write-Verbose "Using specified domain: $DomainName"
+        }
+
+        # Get forest information if requested
+        $forest = $null
+        if ($IncludeForest) {
+            $forest = Get-ADForest -Current LocalComputer -ErrorAction Stop
+            Write-Verbose "Analyzing forest: $($forest.Name)"
+        }
+
+        # Domain-level FSMO roles
+        $domainRoles = @(
+            @{ Name = "PDC Emulator"; Role = "PDCEmulator"; Scope = "Domain"; Critical = $true },
+            @{ Name = "RID Master"; Role = "RIDMaster"; Scope = "Domain"; Critical = $true },
+            @{ Name = "Infrastructure Master"; Role = "InfrastructureMaster"; Scope = "Domain"; Critical = $false }
+        )
+
+        foreach ($roleInfo in $domainRoles) {
+            try {
+                $roleHolder = $domain.($roleInfo.Role)
+                $dcObject = Get-ADDomainController -Identity $roleHolder -ErrorAction Stop
+
+                $fsmoRole = [PSCustomObject]@{
+                    RoleName = $roleInfo.Name
+                    RoleType = $roleInfo.Role
+                    Scope = $roleInfo.Scope
+                    Domain = $DomainName
+                    RoleHolder = $roleHolder
+                    RoleHolderFQDN = $dcObject.HostName
+                    Site = $dcObject.Site
+                    OperatingSystem = $dcObject.OperatingSystem
+                    OperatingSystemVersion = $dcObject.OperatingSystemVersion
+                    IPv4Address = $dcObject.IPv4Address
+                    IsCritical = $roleInfo.Critical
+                    Status = "Unknown"
+                    LastContactTime = $null
+                    ErrorMessage = $null
+                    Recommendations = @()
+                    RiskLevel = "Unknown"
+                    Dependencies = @()
+                    CollectionTime = Get-Date
+                }
+
+                # Validate availability if requested
+                if ($ValidateAvailability) {
+                    try {
+                        $pingTest = Test-Connection -ComputerName $dcObject.HostName -Count 1 -Quiet -ErrorAction Stop
+                        if ($pingTest) {
+                            # Test LDAP connectivity
+                            $ldapTest = Test-NetConnection -ComputerName $dcObject.HostName -Port 389 -InformationLevel Quiet -ErrorAction Stop
+                            if ($ldapTest) {
+                                $fsmoRole.Status = "Available"
+                                $fsmoRole.LastContactTime = Get-Date
+                            } else {
+                                $fsmoRole.Status = "LDAP Unreachable"
+                                $fsmoRole.RiskLevel = "High"
+                            }
+                        } else {
+                            $fsmoRole.Status = "Network Unreachable"
+                            $fsmoRole.RiskLevel = "Critical"
+                        }
+                    } catch {
+                        $fsmoRole.Status = "Validation Failed"
+                        $fsmoRole.ErrorMessage = $_.Exception.Message
+                        $fsmoRole.RiskLevel = "High"
+                    }
+                }
+
+                # Detailed analysis if requested
+                if ($DetailedAnalysis) {
+                    switch ($roleInfo.Role) {
+                        "PDCEmulator" {
+                            $fsmoRole.Dependencies = @("Time Synchronization", "Password Changes", "Account Lockouts", "Group Policy")
+                            if ($ValidateAvailability -and $fsmoRole.Status -ne "Available") {
+                                $fsmoRole.RiskLevel = "Critical"
+                            }
+                        }
+                        "RIDMaster" {
+                            $fsmoRole.Dependencies = @("Object Creation", "RID Pool Allocation")
+                            if ($ValidateAvailability -and $fsmoRole.Status -ne "Available") {
+                                $fsmoRole.RiskLevel = "High"
+                            }
+                        }
+                        "InfrastructureMaster" {
+                            $fsmoRole.Dependencies = @("Cross-Domain References", "Group Memberships")
+                            if ($ValidateAvailability -and $fsmoRole.Status -ne "Available") {
+                                $fsmoRole.RiskLevel = "Medium"
+                            }
+                        }
+                    }
+                }
+
+                $fsmoResults += $fsmoRole
+
+            } catch {
+                Write-Warning "Error retrieving $($roleInfo.Name) information: $($_.Exception.Message)"
+
+                # Add error entry
+                $errorRole = [PSCustomObject]@{
+                    RoleName = $roleInfo.Name
+                    RoleType = $roleInfo.Role
+                    Scope = $roleInfo.Scope
+                    Domain = $DomainName
+                    RoleHolder = "ERROR"
+                    RoleHolderFQDN = "N/A"
+                    Site = "N/A"
+                    OperatingSystem = "N/A"
+                    OperatingSystemVersion = "N/A"
+                    IPv4Address = "N/A"
+                    IsCritical = $roleInfo.Critical
+                    Status = "Error"
+                    LastContactTime = $null
+                    ErrorMessage = $_.Exception.Message
+                    Recommendations = @("Investigate role holder status")
+                    RiskLevel = "Critical"
+                    Dependencies = @()
+                    CollectionTime = Get-Date
+                }
+
+                $fsmoResults += $errorRole
+            }
+        }
+
+        # Forest-level FSMO roles if requested
+        if ($IncludeForest -and $forest) {
+            $forestRoles = @(
+                @{ Name = "Schema Master"; Role = "SchemaMaster"; Scope = "Forest"; Critical = $false },
+                @{ Name = "Domain Naming Master"; Role = "DomainNamingMaster"; Scope = "Forest"; Critical = $true }
+            )
+
+            foreach ($roleInfo in $forestRoles) {
+                try {
+                    $roleHolder = $forest.($roleInfo.Role)
+                    $dcObject = Get-ADDomainController -Identity $roleHolder -ErrorAction Stop
+
+                    $fsmoRole = [PSCustomObject]@{
+                        RoleName = $roleInfo.Name
+                        RoleType = $roleInfo.Role
+                        Scope = $roleInfo.Scope
+                        Domain = $forest.Name
+                        RoleHolder = $roleHolder
+                        RoleHolderFQDN = $dcObject.HostName
+                        Site = $dcObject.Site
+                        OperatingSystem = $dcObject.OperatingSystem
+                        OperatingSystemVersion = $dcObject.OperatingSystemVersion
+                        IPv4Address = $dcObject.IPv4Address
+                        IsCritical = $roleInfo.Critical
+                        Status = "Unknown"
+                        LastContactTime = $null
+                        ErrorMessage = $null
+                        Recommendations = @()
+                        RiskLevel = "Unknown"
+                        Dependencies = @()
+                        CollectionTime = Get-Date
+                    }
+
+                    # Validate availability if requested
+                    if ($ValidateAvailability) {
+                        try {
+                            $pingTest = Test-Connection -ComputerName $dcObject.HostName -Count 1 -Quiet -ErrorAction Stop
+                            if ($pingTest) {
+                                $ldapTest = Test-NetConnection -ComputerName $dcObject.HostName -Port 389 -InformationLevel Quiet -ErrorAction Stop
+                                if ($ldapTest) {
+                                    $fsmoRole.Status = "Available"
+                                    $fsmoRole.LastContactTime = Get-Date
+                                } else {
+                                    $fsmoRole.Status = "LDAP Unreachable"
+                                    $fsmoRole.RiskLevel = "High"
+                                }
+                            } else {
+                                $fsmoRole.Status = "Network Unreachable"
+                                $fsmoRole.RiskLevel = "Critical"
+                            }
+                        } catch {
+                            $fsmoRole.Status = "Validation Failed"
+                            $fsmoRole.ErrorMessage = $_.Exception.Message
+                            $fsmoRole.RiskLevel = "High"
+                        }
+                    }
+
+                    # Detailed analysis if requested
+                    if ($DetailedAnalysis) {
+                        switch ($roleInfo.Role) {
+                            "SchemaMaster" {
+                                $fsmoRole.Dependencies = @("Schema Modifications", "Exchange Installations", "Application Schema Extensions")
+                                if ($ValidateAvailability -and $fsmoRole.Status -ne "Available") {
+                                    $fsmoRole.RiskLevel = "Medium"
+                                }
+                            }
+                            "DomainNamingMaster" {
+                                $fsmoRole.Dependencies = @("Domain Creation", "Domain Removal", "Cross-Domain References")
+                                if ($ValidateAvailability -and $fsmoRole.Status -ne "Available") {
+                                    $fsmoRole.RiskLevel = "High"
+                                }
+                            }
+                        }
+                    }
+
+                    $fsmoResults += $fsmoRole
+
+                } catch {
+                    Write-Warning "Error retrieving $($roleInfo.Name) information: $($_.Exception.Message)"
+
+                    # Add error entry
+                    $errorRole = [PSCustomObject]@{
+                        RoleName = $roleInfo.Name
+                        RoleType = $roleInfo.Role
+                        Scope = $roleInfo.Scope
+                        Domain = $forest.Name
+                        RoleHolder = "ERROR"
+                        RoleHolderFQDN = "N/A"
+                        Site = "N/A"
+                        OperatingSystem = "N/A"
+                        OperatingSystemVersion = "N/A"
+                        IPv4Address = "N/A"
+                        IsCritical = $roleInfo.Critical
+                        Status = "Error"
+                        LastContactTime = $null
+                        ErrorMessage = $_.Exception.Message
+                        Recommendations = @("Investigate forest role holder status")
+                        RiskLevel = "Critical"
+                        Dependencies = @()
+                        CollectionTime = Get-Date
+                    }
+
+                    $fsmoResults += $errorRole
+                }
+            }
+        }
+
+        # Analyze role placement if requested
+        if ($AnalyzePlacement) {
+            Write-Verbose "Analyzing FSMO role placement"
+
+            # Check for role consolidation
+            $roleHolders = $fsmoResults | Where-Object { $_.Status -ne "Error" } | Group-Object RoleHolder
+
+            foreach ($holder in $roleHolders) {
+                if ($holder.Count -gt 1) {
+                    $roles = $holder.Group | ForEach-Object { $_.RoleName }
+                    foreach ($role in $holder.Group) {
+                        $role.Recommendations += "Multiple roles on single DC: $($roles -join ', ')"
+                        if ($holder.Count -gt 3) {
+                            $role.RiskLevel = "High"
+                        } elseif ($role.RiskLevel -eq "Unknown") {
+                            $role.RiskLevel = "Medium"
+                        }
+                    }
+                }
+            }
+
+            # Check for Infrastructure Master and Global Catalog coexistence
+            $infraMaster = $fsmoResults | Where-Object { $_.RoleType -eq "InfrastructureMaster" }
+            if ($infraMaster -and $infraMaster.Status -ne "Error") {
+                try {
+                    $dcInfo = Get-ADDomainController -Identity $infraMaster.RoleHolder -ErrorAction Stop
+                    if ($dcInfo.IsGlobalCatalog) {
+                        $infraMaster.Recommendations += "Infrastructure Master should not be on Global Catalog server in multi-domain environments"
+                        $infraMaster.RiskLevel = "Medium"
+                    }
+                } catch {
+                    Write-Verbose "Could not check Global Catalog status for Infrastructure Master"
+                }
+            }
+        }
+
+        Write-Verbose "Collected information for $($fsmoResults.Count) FSMO roles"
+        return $fsmoResults
+
+    } catch {
+        throw "Error analyzing FSMO roles: $($_.Exception.Message)"
+    }
+}
+
+function Add-FSMORecommendations {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [array]$FSMORoles
+    )
+
+    foreach ($role in $FSMORoles) {
+        if ($role.Status -eq "Error") {
+            $role.Recommendations += "CRITICAL: Role holder is unavailable - investigate immediately"
+            $role.Recommendations += "Consider seizing role if DC is permanently offline"
+            continue
+        }
+
+        if ($role.Status -ne "Available" -and $role.Status -ne "Unknown") {
+            $role.Recommendations += "WARNING: Role holder is not fully available"
+            $role.Recommendations += "Monitor role holder health and consider transfer if issues persist"
+        }
+
+        # Role-specific recommendations
+        switch ($role.RoleType) {
+            "PDCEmulator" {
+                $role.Recommendations += "Ensure this DC has reliable time source (external NTP)"
+                $role.Recommendations += "Monitor for account lockout and password change load"
+                $role.Recommendations += "Consider dedicated hardware for high-transaction environments"
+            }
+            "RIDMaster" {
+                $role.Recommendations += "Monitor RID pool consumption regularly"
+                $role.Recommendations += "Ensure regular backups before RID pool exhaustion"
+            }
+            "InfrastructureMaster" {
+                $role.Recommendations += "Avoid placing on Global Catalog server in multi-domain forests"
+                $role.Recommendations += "Monitor cross-domain group membership updates"
+            }
+            "SchemaMaster" {
+                $role.Recommendations += "Restrict access to schema modifications"
+                $role.Recommendations += "Ensure proper backup before schema changes"
+                $role.Recommendations += "Document all schema modifications for auditing"
+            }
+            "DomainNamingMaster" {
+                $role.Recommendations += "Control domain creation and removal operations"
+                $role.Recommendations += "Ensure high availability for forest structural changes"
+            }
+        }
+
+        # General recommendations
+        if ($role.RiskLevel -eq "Critical") {
+            $role.Recommendations += "IMMEDIATE ACTION REQUIRED: Critical role unavailable"
+        }
+
+        if ($role.OperatingSystem -and $role.OperatingSystem -like "*2008*") {
+            $role.Recommendations += "WARNING: Legacy operating system detected - plan upgrade"
+            if ($role.RiskLevel -in @("Unknown", "Low")) {
+                $role.RiskLevel = "Medium"
+            }
+        }
+    }
+
+    return $FSMORoles
+}
+
+function Export-FSMOResults {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [array]$Data,
+
+        [Parameter(Mandatory = $true)]
+        [string]$OutputPath,
+
+        [Parameter(Mandatory = $true)]
+        [string]$DomainName,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('CSV', 'JSON', 'Excel', 'Object', 'Text')]
+        [string]$Format
+    )
+
+    if (-not $Data -or $Data.Count -eq 0) {
+        Write-Warning "No FSMO data to export"
+        return
+    }
+
+    $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+
+    switch ($Format) {
+        'CSV' {
+            $outputFile = Join-Path $OutputPath "$DomainName-FSMO-v3.0-$timestamp.csv"
+            $Data | Export-Csv -Path $outputFile -NoTypeInformation -Encoding UTF8
+            Write-Host "FSMO information exported to: $outputFile" -ForegroundColor Green
+            return $outputFile
+        }
+
+        'JSON' {
+            $outputFile = Join-Path $OutputPath "$DomainName-FSMO-v3.0-$timestamp.json"
+            $Data | ConvertTo-Json -Depth 4 | Out-File -FilePath $outputFile -Encoding UTF8
+            Write-Host "FSMO information exported to: $outputFile" -ForegroundColor Green
+            return $outputFile
+        }
+
+        'Excel' {
+            try {
+                $outputFile = Join-Path $OutputPath "$DomainName-FSMO-v3.0-$timestamp.xlsx"
+
+                if (Get-Module -ListAvailable -Name ImportExcel -ErrorAction SilentlyContinue) {
+                    Import-Module ImportExcel -ErrorAction Stop
+                    $Data | Export-Excel -Path $outputFile -AutoSize -FreezeTopRow -BoldTopRow -WorksheetName "FSMO Roles"
+                    Write-Host "FSMO information exported to: $outputFile" -ForegroundColor Green
+                    return $outputFile
+                } else {
+                    Write-Warning "ImportExcel module not available. Exporting as CSV instead."
+                    $outputFile = Join-Path $OutputPath "$DomainName-FSMO-v3.0-$timestamp.csv"
+                    $Data | Export-Csv -Path $outputFile -NoTypeInformation -Encoding UTF8
+                    Write-Host "FSMO information exported to: $outputFile" -ForegroundColor Green
+                    return $outputFile
+                }
+            } catch {
+                Write-Warning "Excel export failed: $($_.Exception.Message). Falling back to CSV."
+                $outputFile = Join-Path $OutputPath "$DomainName-FSMO-v3.0-$timestamp.csv"
+                $Data | Export-Csv -Path $outputFile -NoTypeInformation -Encoding UTF8
+                Write-Host "FSMO information exported to: $outputFile" -ForegroundColor Green
+                return $outputFile
+            }
+        }
+
+        'Text' {
+            $outputFile = Join-Path $OutputPath "$DomainName-FSMO-v3.0-$timestamp.txt"
+
+            $textOutput = @()
+            $textOutput += "FSMO Role Analysis Report v3.0"
+            $textOutput += "Generated: $(Get-Date)"
+            $textOutput += "Domain: $DomainName"
+            $textOutput += "=" * 50
+            $textOutput += ""
+
+            foreach ($role in $Data) {
+                $textOutput += "Role: $($role.RoleName) ($($role.Scope))"
+                $textOutput += "  Holder: $($role.RoleHolder)"
+                $textOutput += "  FQDN: $($role.RoleHolderFQDN)"
+                $textOutput += "  Site: $($role.Site)"
+                $textOutput += "  Status: $($role.Status)"
+                $textOutput += "  Risk Level: $($role.RiskLevel)"
+
+                if ($role.Recommendations -and $role.Recommendations.Count -gt 0) {
+                    $textOutput += "  Recommendations:"
+                    foreach ($rec in $role.Recommendations) {
+                        $textOutput += "    - $rec"
+                    }
+                }
+
+                $textOutput += ""
+            }
+
+            $textOutput | Out-File -FilePath $outputFile -Encoding UTF8
+            Write-Host "FSMO information exported to: $outputFile" -ForegroundColor Green
+            return $outputFile
+        }
+
+        'Object' {
+            Write-Host "Returning $($Data.Count) FSMO role objects" -ForegroundColor Green
+            return $Data
+        }
+    }
+}
+
+# Main execution
+try {
+    Write-Verbose "Starting FSMO analysis script v3.0"
+
+    # Import ActiveDirectory module if not already loaded
+    if (-not (Get-Module -Name ActiveDirectory -ErrorAction SilentlyContinue)) {
+        Import-Module ActiveDirectory -ErrorAction Stop
+        Write-Verbose "ActiveDirectory module imported successfully"
+    }
+
+    Write-Host "FSMO Role Analysis v3.0" -ForegroundColor Cyan
+    Write-Host "Starting analysis..." -ForegroundColor Green
+
+    # Get FSMO role information
+    $fsmoRoles = Get-FSMORoles -DomainName $DomainName -IncludeForest:$IncludeForest -ValidateAvailability:$ValidateAvailability -AnalyzePlacement:$AnalyzePlacement -DetailedAnalysis:$DetailedAnalysis -Credential $Credential
+
+    if (-not $fsmoRoles -or $fsmoRoles.Count -eq 0) {
+        throw "No FSMO role information was retrieved"
+    }
+
+    # Add recommendations if requested
+    if ($IncludeRecommendations) {
+        Write-Verbose "Generating recommendations"
+        $fsmoRoles = Add-FSMORecommendations -FSMORoles $fsmoRoles
+    }
+
+    # Export results
+    $result = Export-FSMOResults -Data $fsmoRoles -OutputPath $OutputPath -DomainName $(if($DomainName) { $DomainName } else { (Get-ADDomain -Current LocalComputer).Name }) -Format $OutputFormat
+
+    # Display summary
+    Write-Host "`nFSMO Role Analysis Summary:" -ForegroundColor Yellow
+    Write-Host "Total Roles Analyzed: $($fsmoRoles.Count)" -ForegroundColor White
+
+    $availableRoles = $fsmoRoles | Where-Object { $_.Status -eq "Available" }
+    $unavailableRoles = $fsmoRoles | Where-Object { $_.Status -notin @("Available", "Unknown") }
+    $errorRoles = $fsmoRoles | Where-Object { $_.Status -eq "Error" }
+
+    Write-Host "Available Roles: $($availableRoles.Count)" -ForegroundColor Green
+    if ($unavailableRoles.Count -gt 0) {
+        Write-Host "Unavailable Roles: $($unavailableRoles.Count)" -ForegroundColor Yellow
+    }
+    if ($errorRoles.Count -gt 0) {
+        Write-Host "Error Roles: $($errorRoles.Count)" -ForegroundColor Red
+    }
+
+    # Role holder distribution
+    if ($fsmoRoles | Where-Object { $_.Status -ne "Error" }) {
+        $roleHolders = $fsmoRoles | Where-Object { $_.Status -ne "Error" } | Group-Object RoleHolder
+        Write-Host "`nRole Distribution:" -ForegroundColor Yellow
+        foreach ($holder in $roleHolders | Sort-Object Count -Descending) {
+            $roles = $holder.Group | ForEach-Object { $_.RoleName }
+            Write-Host "  $($holder.Name): $($holder.Count) roles ($($roles -join ', '))" -ForegroundColor White
+        }
+    }
+
+    # Risk assessment
+    $riskLevels = $fsmoRoles | Group-Object RiskLevel
+    if ($riskLevels | Where-Object { $_.Name -ne "Unknown" }) {
+        Write-Host "`nRisk Assessment:" -ForegroundColor Yellow
+        foreach ($risk in $riskLevels | Sort-Object Name) {
+            $color = switch ($risk.Name) {
+                "Critical" { "Red" }
+                "High" { "Magenta" }
+                "Medium" { "Yellow" }
+                "Low" { "Green" }
+                default { "Gray" }
+            }
+            Write-Host "  $($risk.Name): $($risk.Count) roles" -ForegroundColor $color
+        }
+    }
+
+    # Critical issues
+    $criticalIssues = $fsmoRoles | Where-Object { $_.RiskLevel -eq "Critical" -or $_.Status -eq "Error" }
+    if ($criticalIssues.Count -gt 0) {
+        Write-Host "`nCRITICAL ISSUES FOUND:" -ForegroundColor Red
+        foreach ($issue in $criticalIssues) {
+            Write-Host "  $($issue.RoleName): $($issue.Status)" -ForegroundColor Red
+            if ($issue.ErrorMessage) {
+                Write-Host "    Error: $($issue.ErrorMessage)" -ForegroundColor Red
+            }
+        }
+    }
+
+    if ($OutputFormat -eq 'Object') {
+        return $result
+    }
+
+} catch {
+    Write-Error "Script execution failed: $($_.Exception.Message)"
+    exit 1
+}

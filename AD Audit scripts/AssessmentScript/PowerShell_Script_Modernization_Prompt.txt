@@ -1,0 +1,306 @@
+COMPREHENSIVE POWERSHELL SCRIPT MODERNIZATION PROMPT
+====================================================
+
+OBJECTIVE:
+Read an existing PowerShell script, analyze its functionality, and create a completely modernized version with enterprise-grade features, then document all improvements in a separate text file.
+
+INSTRUCTIONS:
+
+PHASE 1: SCRIPT ANALYSIS
+------------------------
+1. Read the target script file completely
+2. Identify the script's primary purpose and functionality
+3. Analyze current version number (if any) in filename or content
+4. Document current limitations, including:
+   - Lack of error handling
+   - Poor parameter management
+   - Limited output formats
+   - Missing documentation
+   - Security vulnerabilities
+   - Performance issues
+   - No logging or monitoring capabilities
+
+PHASE 2: VERSION PLANNING
+-------------------------
+1. Determine new version number based on scope of changes:
+   - Major version increment (e.g., v0.2 ? v2.0) for complete rewrites
+   - Minor version increment (e.g., v1.0 ? v1.5) for significant enhancements
+   - Patch version increment (e.g., v1.0 ? v1.0.1) for bug fixes only
+
+2. Create new filename format: [OriginalName]_v[NewVersion].ps1
+
+PHASE 3: SCRIPT MODERNIZATION
+-----------------------------
+Implement the following enhancements systematically:
+
+A. POWERSHELL BEST PRACTICES:
+   - Add comprehensive comment-based help with:
+     * .SYNOPSIS
+     * .DESCRIPTION
+     * .PARAMETER (for each parameter)
+     * .EXAMPLE (multiple usage examples)
+     * .NOTES (version, author, requirements)
+
+   - Implement [CmdletBinding()] for advanced cmdlet functionality
+   - Add #Requires statements for:
+     * PowerShell version (minimum 5.1)
+     * Required modules
+     * Administrative privileges (if needed)
+
+   - Use proper parameter validation:
+     * [Parameter(Mandatory=$true/$false)]
+     * [ValidateSet()] for enumerated values
+     * [ValidateNotNullOrEmpty()]
+     * Help messages for each parameter
+
+B. ERROR HANDLING AND LOGGING:
+   - Implement comprehensive try-catch blocks
+   - Add verbose logging throughout script execution
+   - Create structured error messages with actionable information
+   - Implement graceful failure handling
+   - Add progress indicators for long-running operations
+
+C. ENHANCED FUNCTIONALITY:
+   - Add multiple output format support:
+     * CSV (with proper encoding)
+     * JSON (for automation)
+     * Excel (with ImportExcel module)
+     * PowerShell objects (for pipeline)
+     * Formatted text (for reports)
+
+   - Implement credential support for cross-domain scenarios
+   - Add comprehensive data validation and sanitization
+   - Include performance optimization features
+   - Add configuration file support (if applicable)
+
+D. ENTERPRISE FEATURES:
+   - Add detailed summary statistics and analysis
+   - Implement audit trail and compliance features
+   - Include security assessment capabilities
+   - Add integration points for monitoring systems
+   - Implement scheduling and automation support
+
+E. ADVANCED CAPABILITIES:
+   - Add intelligent analysis and recommendations
+   - Implement best practice validation
+   - Include risk assessment functionality
+   - Add dependency checking and validation
+   - Implement backup and recovery considerations
+
+PHASE 4: OUTPUT ENHANCEMENT
+---------------------------
+Transform basic outputs into comprehensive reporting:
+
+1. STRUCTURED DATA OBJECTS:
+   - Replace simple text output with PSCustomObject
+   - Include metadata (timestamps, collection methods, etc.)
+   - Add status and health indicators
+   - Include error tracking and reporting
+
+2. PROFESSIONAL FORMATTING:
+   - Color-coded console output
+   - Timestamped file outputs
+   - Professional Excel formatting
+   - Executive-ready summary reports
+
+3. AUTOMATION INTEGRATION:
+   - JSON output for API integration
+   - PowerShell objects for pipeline processing
+   - Structured logging for SIEM systems
+   - Alert integration capabilities
+
+PHASE 5: TESTING AND VALIDATION
+-------------------------------
+1. Add input validation for all parameters
+2. Implement connectivity testing where applicable
+3. Add configuration validation
+4. Include performance benchmarking
+5. Add compatibility testing
+
+PHASE 6: DOCUMENTATION CREATION
+-------------------------------
+Create a separate improvements documentation file named: [ScriptName]_v[NewVersion]_Improvements.txt
+
+Include the following sections:
+
+A. EXECUTIVE SUMMARY:
+   - Version information and upgrade scope
+   - Key improvements overview
+   - Business impact and value proposition
+
+B. TECHNICAL IMPROVEMENTS:
+   - Original script limitations analysis
+   - New capabilities detailed breakdown
+   - Architecture and design enhancements
+   - Performance improvements
+
+C. FEATURE ENHANCEMENTS:
+   - New functionality descriptions
+   - Enhanced output formats
+   - Security improvements
+   - Enterprise features
+
+D. OPERATIONAL BENEFITS:
+   - Administrative efficiency gains
+   - Monitoring and alerting capabilities
+   - Compliance and audit support
+   - Integration possibilities
+
+E. USAGE EXAMPLES:
+   - Basic usage (backward compatibility)
+   - Advanced enterprise scenarios
+   - Automation integration examples
+   - PowerShell pipeline usage
+
+F. MIGRATION GUIDANCE:
+   - Upgrade path from original script
+   - Backward compatibility considerations
+   - Adoption strategy recommendations
+   - Change management guidance
+
+G. SECURITY CONSIDERATIONS:
+   - Security enhancements implemented
+   - Best practice compliance
+   - Risk mitigation features
+   - Audit trail capabilities
+
+H. PERFORMANCE ANALYSIS:
+   - Efficiency improvements
+   - Scalability enhancements
+   - Resource optimization
+   - Timeout and error handling
+
+I. COMPLIANCE AND AUDIT:
+   - Regulatory compliance support
+   - Audit documentation features
+   - Change tracking capabilities
+   - Risk assessment integration
+
+J. RETURN ON INVESTMENT:
+   - Time savings quantification
+   - Risk reduction benefits
+   - Cost efficiency improvements
+   - Operational excellence gains
+
+IMPLEMENTATION CHECKLIST:
+=========================
+
+PRE-MODERNIZATION:
+? Read and analyze original script completely
+? Identify core functionality and purpose
+? Document current limitations and issues
+? Plan version numbering strategy
+? Determine scope of improvements needed
+
+DURING MODERNIZATION:
+? Implement comment-based help with all sections
+? Add [CmdletBinding()] and proper parameter handling
+? Include #Requires statements for dependencies
+? Add comprehensive error handling and logging
+? Implement multiple output format support
+? Add progress indicators and user feedback
+? Include security and validation features
+? Add enterprise-grade reporting capabilities
+
+POST-MODERNIZATION:
+? Test all parameter combinations
+? Validate error handling scenarios
+? Test output formats and file generation
+? Verify backward compatibility where possible
+? Create comprehensive improvement documentation
+? Include usage examples and migration guidance
+
+QUALITY STANDARDS:
+==================
+
+CODE QUALITY:
+- Follow PowerShell best practices and style guidelines
+- Implement proper indentation and commenting
+- Use meaningful variable and function names
+- Include inline comments for complex logic
+- Ensure code modularity and reusability
+
+DOCUMENTATION QUALITY:
+- Professional language and formatting
+- Complete coverage of all improvements
+- Specific examples and use cases
+- Clear migration and adoption guidance
+- Executive-level summaries and technical details
+
+OUTPUT QUALITY:
+- Multiple format support (CSV, JSON, Excel, Object, Text)
+- Professional formatting and presentation
+- Comprehensive data with metadata
+- Error tracking and status reporting
+- Audit trail and compliance support
+
+ENTERPRISE READINESS:
+- Scalability for large environments
+- Integration with monitoring systems
+- Automation and scheduling support
+- Security and compliance features
+- Professional reporting capabilities
+
+VALIDATION CRITERIA:
+===================
+
+FUNCTIONAL VALIDATION:
+? All original functionality preserved or enhanced
+? New features work as documented
+? Error handling gracefully manages failures
+? Output formats generate correctly
+? Performance meets or exceeds original
+
+DOCUMENTATION VALIDATION:
+? Improvement documentation is comprehensive
+? Examples are accurate and functional
+? Migration guidance is clear and actionable
+? Technical details are accurate
+? Business value is clearly articulated
+
+ENTERPRISE VALIDATION:
+? Suitable for production enterprise environments
+? Supports automation and integration requirements
+? Includes appropriate security measures
+? Provides audit and compliance capabilities
+? Scales to organizational requirements
+
+SUCCESS METRICS:
+===============
+
+TECHNICAL METRICS:
+- Lines of code improvement ratio (original vs. modernized)
+- Number of new features implemented
+- Error handling coverage percentage
+- Output format variety and quality
+- Performance improvement measurements
+
+OPERATIONAL METRICS:
+- Time savings for administrators
+- Reduced manual intervention requirements
+- Improved error detection and resolution
+- Enhanced reporting capabilities
+- Increased automation possibilities
+
+BUSINESS METRICS:
+- Risk reduction through better monitoring
+- Compliance improvement through better documentation
+- Efficiency gains through automation
+- Cost savings through reduced manual effort
+- Improved security posture through enhanced validation
+
+DELIVERABLES:
+============
+
+PRIMARY DELIVERABLES:
+1. Modernized PowerShell script with new version number
+2. Comprehensive improvement documentation file
+3. Usage examples and migration guidance
+
+SECONDARY DELIVERABLES:
+1. Backward compatibility assessment
+2. Performance comparison analysis
+3. Security enhancement documentation
+4. Integration guidance for enterprise environments
+
+This prompt provides a comprehensive framework for systematically modernizing PowerShell scripts while ensuring enterprise-grade quality, documentation, and functionality. Follow each phase methodically to achieve consistent, professional results.

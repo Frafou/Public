@@ -1,0 +1,39 @@
+<<<<<<< HEAD
+Starting script.
+Importing Required modules
+ActiveDirectory
+Starting script.
+
+
+=======================
+
+Ending Export-GPOReports.ps1 script.
+18.5324905 seconds
+0.308874841666667 minutes
+LogPath : S:\AD\Audit
+Logfile : S:\AD\Audit\Logs\Export-GPOReports-20250212-150944.log
+Datafile : S:\AD\Audit\Report\Export-GPOReports-20250212-150944.csv
+
+***************************************************************************************************
+Finished processing at [02/12/2025 15:10:03].
+***************************************************************************************************
+=======
+Starting script.
+Importing Required modules
+ActiveDirectory
+Starting script.
+
+
+=======================
+
+Ending Export-GPOReports.ps1 script.
+18.5324905 seconds
+0.308874841666667 minutes
+LogPath : S:\AD\Audit
+Logfile : S:\AD\Audit\Logs\Export-GPOReports-20250212-150944.log
+Datafile : S:\AD\Audit\Report\Export-GPOReports-20250212-150944.csv
+
+***************************************************************************************************
+Finished processing at [02/12/2025 15:10:03].
+***************************************************************************************************
+>>>>>>> be44196b159209d1aaeb653fb965a159a27ed321

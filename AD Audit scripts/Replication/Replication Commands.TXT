@@ -1,0 +1,27 @@
+# Between two partners:
+
+repadmin /replicate contosodc2.contoso.com contosodc1.contoso.com dc=contoso, dc=com
+
+# For a specific NC with all partners:
+repadmin /syncall contosodc1.contoso.com dc=contoso, dc=com
+
+# Replicate single object:
+Sync-ADObject 'CN=Abercrombie\, Kim, OU=Sales, DC=contoso, DC=com' -Source contosodc1.contoso.com -Destination contosodc2.contoso.com
+
+repadmin /replsingleobj contosodc2.contoso.com contosodc1.contoso.com 'CN=Abercrombie\, Kim, OU=Sales, DC=contoso, DC=com'
+
+# Destination DC = contosodc2.contoso.com / Source DC = contosodc1.contoso.com
+
+
+
+Troubleshooting Scenario: Lingering Object Removal
+
+Event ID 1988
+Repadmin /removelingeringobjects
+	Use /advisory_mode first!
+
+<Dest_DC_LIST> <Source DC GUID> <NC>
+[/ADVISORY_MODE]
+
+Detecting lingering objects
+	/removelingeringobjects
