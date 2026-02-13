@@ -86,8 +86,8 @@
     File Name      : Manage-AzureArcExtensions.ps1
     Author         : Scott Brondel (sbrondel@microsoft.com) - Original
                      Francois Fournier - Enhancements and logging
-    Version        : 1.2
-    Last Edit      : 2025-11-24
+    Version        : 1.4
+    Last Edit      : 2026-02-12
     Keywords       : Azure Arc, Extensions, Management, Automation, PowerShell
 
     AZURE REQUIREMENTS:
@@ -135,6 +135,8 @@
     1.1  11/04/2025 - Francois Fournier - Added ResourceGroup parameter, enhanced logging, bug fixes
     1.2  11/04/2025 - Francois Fournier - Integrated comprehensive logging function
     1.2  11/24/2025 - Francois Fournier - Updated documentation and Azure best practices
+    1.3  02/12/2026 - Francois Fournier - updated processing and reporting
+    1.4  02/12/2026 - Francois Fournier - updated Header comments and notes
 
     SECURITY CONSIDERATIONS:
     - Uses Azure managed identity when available
@@ -169,9 +171,9 @@
 [CmdletBinding()]
 param (
 
-    [parameter(ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true, HelpMessage = 'Message' , Mandatory = $false, Position = 0)]
-    [string]$ResourceGroup = 'ArcRG',
-    [parameter(ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true, HelpMessage = 'Message' , Mandatory = $false, Position = 0)]
+    [parameter(ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true, HelpMessage = 'Resource group to validate' , Mandatory = $false, Position = 0)]
+    [string]$ResourceGroup ,
+    [parameter(ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true, HelpMessage = 'Update switch' , Mandatory = $false, Position = 0)]
     [switch]$Update
 )
 
@@ -232,7 +234,7 @@ param (
 
 
 #=============================================================================
-# region Functions
+#region Functions
 function Write-Log {
     param (
         [Parameter(Mandatory = $true)]
@@ -261,8 +263,6 @@ function Write-Log {
     }
 }
 
-#endregion Functions
-
 function Update-Extension {
     param (
         $resourceGroup,
@@ -273,21 +273,28 @@ function Update-Extension {
     )
     $target = @{$extension = @{'targetVersion' = $version } }
     Write-log "Starting job to update $extension on $machine from $oldVersion to $newVersion" -Level INFO
+
     Update-AzConnectedExtension -ResourceGroupName $ResourceGroup -MachineName $machine -ExtensionTarget $target -AsJob | Out-Null
+
+
     Start-Sleep -Seconds 5  # added delay to help ensure many out-of-date extensions can patch in a single run
 }
 
 function Update-LookupTable {
     Write-log 'Getting list of latest extensions, this will take a minute or two.' -Level INFO
+
+    az vm extension image list | ConvertFrom-Json  | Out-File -FilePath ".\notLatest"
+    az vm extension image list --latest | ConvertFrom-Json  | Out-File -FilePath ".\latest"
+    az vm extension image list --latest --location canadaCentral | ConvertFrom-Json  | Out-File -FilePath ".\canadaCentral"
     $currentVersions = az vm extension image list --latest
     $currentVersions = $currentVersions | ConvertFrom-Json
+    $currentVersions | Out-File -FilePath ".\$LogDate-currentVersions.txt"
     foreach ($extension in $currentVersions) {
         $fullName = $extension.Publisher + '.' + $extension.Name;
         $lookupTable[$fullName] = $extension.version
     }
 
-    #$lookupTable | Sort-Object name | Format-Table -AutoSize | Out-File -FilePath .\lookupTable.txt
-    $lookupTable.GetEnumerator() | Sort-Object Name | Format-Table -AutoSize | Out-File -FilePath .\lookupTable.txt
+    $lookupTable.GetEnumerator() | Sort-Object Name | Format-Table -AutoSize | Out-File -FilePath ".\$LogDate-lookupTable.txt"
 }
 
 function Get-ArcMachineExtensions {
@@ -307,7 +314,7 @@ function Get-ArcMachineExtensions {
 
         if ($extension.TypeHandlerVersion -ne $lookupTable.$extName) {
             if ($Update) {
-                Write-Log 'Updating the extension.' -Level WARNING
+                Write-Log "Updating the extension $extname on machine $machine from $($extension.TypeHandlerVersion) to $($lookupTable.$extName)" -Level WARNING
                 Update-Extension -resourcegroup $ResourceGroup -machine $machine -extension $extName -oldVersion $extension.TypeHandlerVersion -newVersion $lookupTable.$extName
             } else {
                 Write-log "$machine needs to update $extname from $($extension.TypeHandlerVersion) to $($lookupTable.$extName)" -Level Info
@@ -324,6 +331,7 @@ function Get-ActiveJobs {
     return (Get-Job | Where-Object { ($_.State -eq 'Running') -and ($_.Name -eq 'Update-AzConnectedExtension_UpgradeExpanded') }).count
 }
 
+#endregion Functions
 ################# Main Script Start ##########################
 
 #=============================================================================
@@ -336,7 +344,7 @@ $LogName = ($ScriptName).Replace('.ps1', '') + '-' + $LogDate + '.log'
 $LogFile = $logPath + '\' + "$LogName"
 
 #endregion Variables
-Write-log 'Starting job to check / update Azure / Arc extensions.' -Level INFO
+Write-log 'Starting job to check / update Azure Arc extensions.' -Level INFO
 Write-log "`n" -Level INFO
 
 if ($update) {
@@ -350,15 +358,20 @@ if ($update) {
     Write-log "`n" -Level INFO
 }
 
-
 # Create our lookup table for extension and version
 $lookupTable = @{}
-
 # Populate the table
 Update-LookupTable
 
 # Get Azure Arc machines in resource group
-$machines = Get-AzConnectedMachine -ResourceGroupName $resourceGroup | Where-Object { $_.ProvisioningState -eq 'Succeeded' -and $_.Status -eq 'Connected' }
+if ($ResourceGroup) {
+    Write-log "Filtering Azure Arc machines in Resource Group $ResourceGroup" -Level INFO
+    $machines = Get-AzConnectedMachine -ResourceGroupName $resourceGroup
+} else {
+    Write-log 'No Resource Group specified, checking all Azure Arc machines in the subscription.' -Level INFO
+    $machines = Get-AzConnectedMachine
+}
+
 $machineCount = $machines.count
 
 # Begin main loop, with progress bar
@@ -370,26 +383,25 @@ foreach ($machine in $machines) {
     $machineProgress = ($currentMachine - 1) / $machines.count * 100
     $machineProgress = [math]::Round($machineProgress, 2)
     Write-Progress -Activity 'Checking Azure Arc Extensions' -Status "Working on server $currentMachine of $machineCount, $machineProgress% Complete" -PercentComplete $machineProgress -Id 1
-    Get-ArcMachineExtensions -resourceGroup $resourceGroup -machine $machine.Name
+
+    Get-ArcMachineExtensions -resourceGroup $machine.ResourceGroupName -machine $machine.Name
+
     $currentMachine += 1
-
-    # Check if we've reached the last system, and if so remove the progress bar
-    if ($currentMachine -gt $machines.count) {
-        Write-Progress -Activity 'Checking Azure Arc Extensions' -Id 1 -Completed
-    }
 }
-
+Write-Progress -Activity 'Checking Azure Arc Extensions' -Id 1 -Completed
 #start-sleep 5
 
 $activeJobs = Get-ActiveJobs
 while ($activeJobs -gt 0) {
     $curTime = (Get-Date -Format 'hh:mm:ss tt')
+    Write-log "`n-----------------------------------------------" -Level INFO
+    Write-log "$curTime." -Level INFO
     if ($activeJobs -gt 1) {
         Write-log "$activeJobs update jobs are still running." -Level INFO
     } else {
         Write-log "$activeJobs update job is still running." -Level INFO
     }
-    Start-Sleep 10
+    Start-Sleep 60
     $activeJobs = Get-ActiveJobs
 }
 Write-log '-----------------------------' -Level INFO

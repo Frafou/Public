@@ -1,0 +1,28 @@
+2026-02-12 23:33:03 [INFO] Starting job to check / update Azure Arc extensions.
+2026-02-12 23:33:03 [INFO] 
+
+2026-02-12 23:33:03 [Warning] Running in -Update mode.
+2026-02-12 23:33:03 [Warning] All out-of-date extensions will be updated, including those with Auto-Update enabled.
+2026-02-12 23:33:03 [Warning] 
+
+2026-02-12 23:33:03 [INFO] Getting list of latest extensions, this will take a minute or two.
+2026-02-12 23:35:44 [INFO] No Resource Group specified, checking all Azure Arc machines in the subscription.
+2026-02-12 23:35:44 [INFO] Discovered 5 Azure Arc systems in Resource Group 
+2026-02-12 23:35:44 [INFO] 
+
+2026-02-12 23:35:44 [INFO] Getting extensions for SRV2 in Resource Group ServicesHub
+2026-02-12 23:36:04 [INFO] 
+
+2026-02-12 23:36:04 [INFO] Getting extensions for DC1 in Resource Group FFCAAzureArc
+2026-02-12 23:36:41 [INFO] DC1 Microsoft.AdminCenter.AdminCenter is up to date.
+2026-02-12 23:36:41 [WARNING] Updating the extension Microsoft.Azure.Monitor.AzureMonitorWindowsAgent on machine DC1 from 1.39.0.0 to 1.41.0.0
+2026-02-12 23:36:42 [INFO] Starting job to update Microsoft.Azure.Monitor.AzureMonitorWindowsAgent on DC1 from 1.39.0.0 to 1.41.0.0
+2026-02-12 23:36:47 [INFO] 
+
+2026-02-12 23:36:47 [INFO] Getting extensions for DC2 in Resource Group FFCAAzureArc
+2026-02-12 23:38:19 [INFO] DC2 Microsoft.AdminCenter.AdminCenter is up to date.
+2026-02-12 23:38:24 [WARNING] Updating the extension Microsoft.Azure.Monitor.AzureMonitorWindowsAgent on machine DC2 from 1.39.0.0 to 1.41.0.0
+2026-02-12 23:38:25 [INFO] Starting job to update Microsoft.Azure.Monitor.AzureMonitorWindowsAgent on DC2 from 1.39.0.0 to 1.41.0.0
+2026-02-12 23:40:34 [INFO] Getting list of latest extensions, this will take a minute or two.
+2026-02-12 23:45:37 [INFO] 
+
