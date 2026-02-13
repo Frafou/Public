@@ -130,6 +130,10 @@
     - Support for pipeline input and automation
     - Color-coded console output for easy monitoring
 
+    Known Issues:
+    - The az vm extension image list --latest command can occasionally return inconsistent results due. Newer version may appear that are not available for upgrade. The script may continually report is as requiring updates.
+    Azure Monitoring Extension in particular have been observed to have this issue.  This is an issue with the Azure CLI command and not the script.  If you encounter this, you can choose to ignore the update warning for that extension until the Azure CLI command returns consistent results.
+
     CHANGE LOG:
     1.0  07/02/2025 - Scott Brondel     - Initial release
     1.1  11/04/2025 - Francois Fournier - Added ResourceGroup parameter, enhanced logging, bug fixes
