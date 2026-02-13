@@ -283,9 +283,12 @@ function Update-Extension {
 function Update-LookupTable {
     Write-log 'Getting list of latest extensions, this will take a minute or two.' -Level INFO
 
-    az vm extension image list | ConvertFrom-Json  | Out-File -FilePath ".\notLatest"
-    az vm extension image list --latest | ConvertFrom-Json  | Out-File -FilePath ".\latest"
-    az vm extension image list --latest --location canadaCentral | ConvertFrom-Json  | Out-File -FilePath ".\canadaCentral"
+    <#
+    az vm extension image list --latest | ConvertFrom-Json | Sort-Object Name, version | Out-File -FilePath ".\latest.txt"
+    az vm extension image list | ConvertFrom-Json  | sort Name, version | Out-File -FilePath ".\notLatest.txt"
+    az vm extension image list --latest --location canadaCentral | ConvertFrom-Json | Sort-Object Name, version | Out-File -FilePath ".\canadaCentral.txt"
+    #>
+
     $currentVersions = az vm extension image list --latest
     $currentVersions = $currentVersions | ConvertFrom-Json
     $currentVersions | Out-File -FilePath ".\$LogDate-currentVersions.txt"
