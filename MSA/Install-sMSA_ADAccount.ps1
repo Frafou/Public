@@ -129,9 +129,9 @@
 .NOTES
     File Name      : Install-sMSA_ADAccount.ps1
     Author         : Francois Fournier
-    Version        : 1.2
+    Version        : 1.4
     Created        : 2025-01-01
-    Last Updated   : 2025-11-24
+    Last Updated   : 2026-2-13
     License        : MIT License
     Keywords       : MSA, Managed Service Account, Active Directory, On-Demand Assessment, PowerShell
 
@@ -436,10 +436,10 @@ process {
 	Write-Log 'Script started.' -Level 'INFO'
 	Write-Log '------------------------------------' -Level 'INFO'
 	Write-Log "MSAName: $MSAName" -Level 'INFO'
-	if ($Remove){
-			Write-Log "Remove: active" -Level 'INFO'
-	}ELSE{
-		Write-Log "Remove: inactive" -Level 'INFO'
+	if ($Remove) {
+		Write-Log 'Remove: active' -Level 'INFO'
+	} else {
+		Write-Log 'Remove: inactive' -Level 'INFO'
 	}
 	if ($AD_ODA) {
 		Write-Log 'AD_ODA: active' -Level 'INFO'
