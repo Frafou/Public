@@ -105,37 +105,37 @@
         - Summary statistics and completion status
 
 .EXAMPLE
-    .\StreamShift_1.0.10.ps1
+    .\StreamShift.ps1
 
     Processes videos in the default network share location using default FFmpeg/FFprobe paths
     in the script directory, performing actual HEVC conversion.
 
 .EXAMPLE
-    .\StreamShift_1.0.10.ps1 -LogOnly
+    .\StreamShift.ps1 -LogOnly
 
     Analyzes the default video directory and generates a report of conversion candidates
     without performing any actual video conversion.
 
 .EXAMPLE
-    .\StreamShift_1.0.10.ps1 -InputPath 'D:\Movies'
+    .\StreamShift.ps1 -InputPath 'D:\Movies'
 
     Processes all videos in the D:\Movies directory and subdirectories, converting
     non-HEVC files to x265 HEVC format.
 
 .EXAMPLE
-    .\StreamShift_1.0.10.ps1 -InputPath '\\nas\media\tv-shows' -LogOnly -Verbose
+    .\StreamShift.ps1 -InputPath '\\nas\media\tv-shows' -LogOnly -Verbose
 
     Analyzes TV show collection on network storage with detailed verbose output,
     identifying conversion candidates without performing conversions.
 
 .EXAMPLE
-    .\StreamShift_1.0.10.ps1 -InputPath 'C:\Personal Videos' -ffmpegPath 'C:\Program Files\ffmpeg\bin\ffmpeg.exe' -ffprobePath 'C:\Program Files\ffmpeg\bin\ffprobe.exe'
+    .\StreamShift.ps1 -InputPath 'C:\Personal Videos' -ffmpegPath 'C:\Program Files\ffmpeg\bin\ffmpeg.exe' -ffprobePath 'C:\Program Files\ffmpeg\bin\ffprobe.exe'
 
     Processes personal video collection using FFmpeg installed in Program Files,
     performing HEVC conversion with custom tool paths.
 
 .NOTES
-    File Name      : StreamShift_1.0.10.ps1
+    File Name      : StreamShift.ps1
     Author         : Oracle (Emby Community)
     Version        : 1.0.10
     Created        : 2023-04-20
@@ -195,7 +195,7 @@
     v1.0.8 - 2023-04-20 - Added PSLogging, LogOnly switch, and enhanced file info
     v1.0.9 - 2025-03-22 - Added parameters for custom paths and executables
     v1.0.10 - 2025-11-24 - Enhanced documentation and usage examples
-    v1.0.11 - 2026-03-21 - Added file count output and progress information
+    v1.0.11 - 2026-03-21 - Added file count output and progress bar information
 
 
 .LINK
