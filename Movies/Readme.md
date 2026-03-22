@@ -4,7 +4,7 @@ Advanced PowerShell solution for automated video library optimization using x265
 
 ## ?? Script Overview
 
-### StreamShift_1.0.9.ps1
+### StreamShift.ps1
 
 **Purpose**: Automated batch video conversion from legacy codecs to HEVC (H.265) for optimal storage efficiency
 
@@ -78,16 +78,16 @@ Install-Module PSLogging -Force
 cd "C:\Scripts\HEVC Conversion"
 
 # Analysis mode - scan and report without converting
-.\StreamShift_1.0.9.ps1 -LogOnly
+.\StreamShift.ps1 -LogOnly
 
 # Full conversion mode - process all non-HEVC videos
-.\StreamShift_1.0.9.ps1
+.\StreamShift.ps1
 
 # Specify custom target directory
-.\StreamShift_1.0.9.ps1 -TargetPath "E:\Videos\Movies"
+.\StreamShift.ps1 -TargetPath "E:\Videos\Movies"
 
 # Verbose output for detailed monitoring
-.\StreamShift_1.0.9.ps1 -Verbose
+.\StreamShift.ps1 -Verbose
 ```
 
 ### Configuration
@@ -213,7 +213,7 @@ $preset = "veryslow"    # Maximum compression
 ```powershell
 # Create scheduled task for automated processing
 $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" `
-    -Argument "-File C:\Scripts\StreamShift_1.0.9.ps1"
+    -Argument "-File C:\Scripts\StreamShift.ps1"
 $Trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Saturday -At 11:00PM
 $Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries `
     -DontStopIfGoingOnBatteries -RestartCount 3
@@ -229,7 +229,7 @@ Register-ScheduledTask -TaskName "HEVC Video Conversion" `
 Stop-Service PlexMediaServer
 
 # 2. Run conversion
-.\StreamShift_1.0.9.ps1
+.\StreamShift.ps1
 
 # 3. Restart media server to scan new files
 Start-Service PlexMediaServer
@@ -275,10 +275,10 @@ $hwAccel = "-hwaccel auto"  # Add to FFmpeg command line
 # Enable detailed debugging output
 $DebugPreference = "Continue"
 $VerbosePreference = "Continue"
-.\StreamShift_1.0.9.ps1 -Verbose -Debug
+.\StreamShift.ps1 -Verbose -Debug
 
 # Generate detailed logs
-.\StreamShift_1.0.9.ps1 -LogOnly > "conversion-analysis.log" 2>&1
+.\StreamShift.ps1 -LogOnly > "conversion-analysis.log" 2>&1
 ```
 
 ## ?? Contributing
