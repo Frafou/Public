@@ -5,26 +5,85 @@
 .DESCRIPTION
     Uses the OMDb API to fetch details for a specific episode of a TV series.
     Requires a free API key from http://www.omdbapi.com/apikey.aspx.
+    Returns comprehensive episode metadata including title, plot, cast, and ratings.
 
 .PARAMETER ApiKey
-    Your OMDb API key.
+    Your OMDb API key. Free API key can be obtained from http://www.omdbapi.com/apikey.aspx
+    Default value is provided but should be replaced with your own key for production use.
 
 .PARAMETER SeriesTitle
-    The exact title of the TV series.
+    The exact title of the TV series. Must match the IMDb series title.
 
 .PARAMETER Season
-    The season number.
+    The season number. Must be a positive integer.
 
 .PARAMETER Episode
-    The episode number.
+    The episode number. Must be a positive integer.
+
+.INPUTS
+    System.String
+        SeriesTitle parameter accepts string pipeline input.
+    System.Int32
+        Season and Episode parameters accept integer values.
+
+.OUTPUTS
+    System.Management.Automation.PSCustomObject
+        Returns an object containing episode properties (Title, Plot, Actors, Director, etc.)
+
+    Log Output
+        Verbose messages containing detailed episode information are written to the verbose stream.
 
 .EXAMPLE
     .\Get-ImdbEpisode.ps1 -ApiKey "YOUR_KEY" -SeriesTitle "Breaking Bad" -Season 1 -Episode 1
+    Retrieves episode 1 from season 1 of Breaking Bad.
+
+.EXAMPLE
+    .\Get-ImdbEpisode.ps1 -SeriesTitle "The Office" -Season 2 -Episode 5 -Verbose
+    Retrieves episode 5 from season 2 of The Office and displays verbose output.
+
+.EXAMPLE
+    Get-ImdbEpisode.ps1 -ApiKey "YOUR_KEY" -SeriesTitle "Game of Thrones" -Season 5 -Episode 8
+    Retrieves specific episode using default or custom API key.
+
+.NOTES
+    Author: Your Name
+    Created: 2026-03-22
+    Version: 1.0.0
+    Last Updated: 2026-03-22
+    License: MIT
+
+    V1.0 Initial version - Basic episode retrieval functionality
+
+    REQUIREMENTS:
+    - Valid OMDb API key from http://www.omdbapi.com/apikey.aspx
+    - Internet connectivity to reach OMDb API
+    - PowerShell 5.1 or higher
+
+.COMPONENT
+    IMDb Episode Retrieval Utility
+    Part of the Movies collection scripts
+
+.ROLE
+    Data Retrieval Utility
+
+.FUNCTIONALITY
+    OMDb API Integration - Episode Information Lookup
+
+.LINK
+    http://www.omdbapi.com/
+    OMDb API Documentation
+
+.LINK
+    https://www.imdb.com/
+    IMDb Website
 #>
 
+#Requires -Version 5.1
+
+[CmdletBinding()]
 param (
     [Parameter(Mandatory = $False)]
-    [string]$ApiKey = '5c256d54',
+    [string]$ApiKey = 'xxxx',
 
     [Parameter(Mandatory = $true)]
     [string]$SeriesTitle,
