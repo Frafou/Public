@@ -305,7 +305,7 @@ $series = @("Breaking Bad", "The Office", "Game of Thrones")
 foreach ($show in $series) {
     # Rename files with episode titles
     .\Set-EpisodeFilenamev1.1.ps1 -SeriesTitle $show -Path "D:\Videos\Series\$show"
-    
+
     # Convert to HEVC
     .\StreamShift.ps1 -InputPath "D:\Videos\Series\$show"
 }
