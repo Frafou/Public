@@ -137,14 +137,14 @@
 .NOTES
     File Name      : StreamShift.ps1
     Author         : Oracle (Emby Community)
-    Version        : 1.0.10
+    Version        : 1.0.11
     Created        : 2023-04-20
-    Last Updated   : 2025-11-24
+    Last Updated   : 2026-03-22
     Keywords       : Video Encoding, HEVC, x265, FFmpeg, Media Optimization, PowerShell
 
     REQUIREMENTS:
     - PowerShell 5.0 or higher
-    - FFmpeg and FFprobe executables (downloadable from ffbinaries.com)
+    - FFmpeg and FFprobe executables (downloadable from https://ffbinaries.com)
     - Sufficient disk space for temporary files during conversion
     - Read/Write permissions on input directory and script directory
     - CPU with modern instruction sets for optimal x265 performance
@@ -184,18 +184,18 @@
     - Network storage may impact I/O performance
 
     CHANGE LOG:
-    v1.0.0 - 2023-04-20 - Oracle (Emby) - Initial version
-    v1.0.1 - 2023-04-20 - Modified to use variables for FFmpeg/FFprobe paths
-    v1.0.2 - 2023-04-20 - Improved console output readability with color coding
-    v1.0.3 - 2023-04-20 - Added AVI file support and MKV conversion
-    v1.0.4 - 2023-04-20 - Fixed AVI to MKV renaming issues
-    v1.0.5 - 2023-04-20 - Enhanced file organization and directory structure
-    v1.0.6 - 2023-04-20 - Resolved executable invocation issues with variables
-    v1.0.7 - 2023-04-20 - Excluded 720p format and improved output naming
-    v1.0.8 - 2023-04-20 - Added PSLogging, LogOnly switch, and enhanced file info
-    v1.0.9 - 2025-03-22 - Added parameters for custom paths and executables
+    v1.0.0  - 2023-04-20 - Oracle (Emby) - Initial version
+    v1.0.1  - 2023-04-20 - Modified to use variables for FFmpeg/FFprobe paths
+    v1.0.2  - 2023-04-20 - Improved console output readability with color coding
+    v1.0.3  - 2023-04-20 - Added AVI file support and MKV conversion
+    v1.0.4  - 2023-04-20 - Fixed AVI to MKV renaming issues
+    v1.0.5  - 2023-04-20 - Enhanced file organization and directory structure
+    v1.0.6  - 2023-04-20 - Resolved executable invocation issues with variables
+    v1.0.7  - 2023-04-20 - Excluded 720p format and improved output naming
+    v1.0.8  - 2023-04-20 - Added PSLogging, LogOnly switch, and enhanced file info
+    v1.0.9  - 2025-03-22 - Added parameters for custom paths and executables
     v1.0.10 - 2025-11-24 - Enhanced documentation and usage examples
-    v1.0.11 - 2026-03-21 - Added file count output and progress bar information
+    v1.0.11 - 2026-03-22 - Added file count output and progress bar information
 
 
 .LINK
@@ -234,7 +234,7 @@ param(
 )
 
 #Define location of my script variable
-$versionNumber = '1.0.10'
+$versionNumber = '1.0.11'
 $ScriptName = Split-Path -Path $MyInvocation.MyCommand.Definition -Leaf
 $ScriptPath = Split-Path -Path $MyInvocation.MyCommand.Definition -Parent
 Set-Location $ScriptPath
